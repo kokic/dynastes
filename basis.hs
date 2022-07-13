@@ -20,4 +20,13 @@ type 𝕾 = String
 indexed :: [a] -> [(a, Int)]
 indexed xs = zip xs [0..]
 
+(∈) :: Eq a => a -> [a] -> Bool
+x ∈ xs = x `elem` xs
+
+(∋) :: Eq a => [a] -> a -> Bool
+xs ∋ x = x `elem` xs
+
+(⊂) :: Eq a => [a] -> [a] -> Bool
+x ⊂ y = x `isSubsequenceOf` y
+
 #endif
