@@ -7,7 +7,7 @@
 
 --- --- --- --- --- --- --- --- --- --- --- --- ---
 
-main = putStrLn $ trans "Stach! Hasse!" italic
+main = putStrLn $ trans "Stach! Hasse!" doubleStruck
 
 --- --- --- --- --- --- --- --- --- --- --- --- ---
 
@@ -31,10 +31,15 @@ instance Trans 𝕾 where
 --- --- --- --- --- --- --- --- --- --- --- --- ---
 
 serifBold = ['𝐀'..'𝐳']
-
-italicRepair :: Char -> Char
-italicRepair x | ord x == 119893 = '_' -- miss `h`
-italicRepair x = x
-italic = map italicRepair ['𝐴'..'𝑧']
+italic = ['𝐴'..'𝑔'] ++ 'h' : ['𝑖'..'𝑧']
 
 italicBold = ['𝑨'..'𝒛']
+
+doubleStruck = ['𝔸', '𝔹', 'ℂ'] ++ ['𝔻'..'𝔾'] ++ 
+  'ℍ' : ['𝕀'..'𝕄'] ++ 'ℕ' : 
+  '𝕆' : 'ℙ' : 'ℚ' : 'ℝ' : ['𝕊'..'𝕐'] ++ ['ℤ'] ++
+  ['𝕒'..'𝕫']
+
+
+
+
