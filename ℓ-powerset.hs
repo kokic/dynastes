@@ -9,7 +9,7 @@ import qualified Data.Set as Set
 -- for simplicity, list is used instead of multiset
 
 -- definition. (ℓ+1)^X := ∪ 2^Y where Y ∈ ℓ^X
--- ℓ_powerset :: Int -> [a] -> [[a]]
+ℓ_powerset :: Int -> [a] -> [[a]]
 ℓ_powerset ℓ u | ℓ >= 3 = foldr (++) [] succ
   where succ = [ ℓ_powerset 2 sublist | sublist <- pred ]
         pred = ℓ_powerset (ℓ-1) u
