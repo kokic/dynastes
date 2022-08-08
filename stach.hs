@@ -5,11 +5,7 @@
 
 #include "basis.hs"
 
---- --- --- --- --- --- --- --- --- --- --- --- ---
-
-main = putStrLn $ script -- trans "Stach! Hasse!" doubleStruck
-
---- --- --- --- --- --- --- --- --- --- --- --- ---
+main = putStrLn $ trans "Stach! Hasse!" doubleStruck
 
 lowerCaseOffset = ord 'a' - ord 'Z' - 1
 
