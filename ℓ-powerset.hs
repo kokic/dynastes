@@ -9,7 +9,7 @@ import qualified Data.Set as Set
 -- for simplicity, list is used instead of multiset
 
 -- definition. (ℓ+1)^X := ∪ 2^Y where Y ∈ ℓ^X
-ℓ_powerset :: Int -> [a] -> [[a]]
+ℓ_powerset :: (Ord a) => Int -> [a] -> [[a]]
 ℓ_powerset ℓ u | ℓ >= 3 = foldr (++) [] succ
   where succ = [ ℓ_powerset 2 sublist | sublist <- pred ]
         pred = ℓ_powerset (ℓ-1) u
@@ -26,9 +26,25 @@ import qualified Data.Set as Set
 𝜔1 = Set.singleton Set.empty -- {∅}
 
 -- prettify 
-
--- toTex 
 varnothing = "∅"
 
-main = print $ ℓ_powerset 3 ["a", "b"]
+
+class Prettify a where 
+  prettify :: a -> 𝕾
+
+instance Prettify [𝕾] where
+  prettify [] = varnothing
+  prettify xs = '{' : elements ++ "}"
+    where elements = foldl comma (head xs) (tail xs)
+          comma = \ x y -> x ++ ", " ++ y
+
+instance Prettify [[𝕾]] where
+  prettify xs = '{' : elements ++ "}"
+    where elements = foldl comma (prettify (head xs)) (tail xs)
+          comma = \ x y -> x ++ ", " ++ prettify y
+
+-- toTex 
+
+
+main = putStrLn $ prettify (ℓ_powerset 16 ["a", "b"])
 
