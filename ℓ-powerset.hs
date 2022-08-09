@@ -31,20 +31,23 @@ varnothing = "∅"
 
 class Prettify a where 
   prettify :: a -> 𝕾
+  toTex :: a -> 𝕾
+
+comma :: (t -> 𝕾) -> 𝕾 -> t -> 𝕾
+comma apply = \ x y -> x ++ ", " ++ apply y
 
 instance Prettify [𝕾] where
   prettify [] = varnothing
-  prettify xs = '{' : elements ++ "}"
-    where elements = foldl comma (head xs) (tail xs)
-          comma = \ x y -> x ++ ", " ++ y
+  prettify xs = '{' : manifold𝟙 comma xs ++ "}"
+  toTex [] = "\\varnothing"
+  toTex xs = "\\{" ++ manifold𝟙 comma xs ++ "\\}"
 
 instance Prettify [[𝕾]] where
-  prettify xs = '{' : elements ++ "}"
-    where elements = foldl comma (prettify (head xs)) (tail xs)
-          comma = \ x y -> x ++ ", " ++ prettify y
+  prettify xs = '{' : manifold comma xs prettify ++ "}"
+  toTex xs = "\\{" ++ manifold comma xs toTex ++ "\\}"
 
 -- toTex 
 
 
-main = putStrLn $ prettify (ℓ_powerset 16 ["a", "b"])
+main = putStrLn $ prettify (ℓ_powerset 4 ["a", "b"])
 

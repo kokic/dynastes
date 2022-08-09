@@ -20,6 +20,10 @@ type 𝕾 = String
 indexed :: [a] -> [(a, Int)]
 indexed xs = zip xs [0..]
 
+manifold :: ((a -> b) -> b -> a -> b) -> [a] -> (a -> b) -> b
+manifold f xs apply = foldl (f apply) (apply (head xs)) (tail xs)
+manifold𝟙 f xs = manifold f xs id
+
 (∈) :: Eq a => a -> [a] -> Bool
 x ∈ xs = x `elem` xs
 
