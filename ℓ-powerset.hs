@@ -38,8 +38,10 @@ comma apply = \ x y -> x ++ ", " ++ apply y
 
 instance Prettify [𝕾] where
   prettify [] = varnothing
+  prettify [[]] = "{∅}"
   prettify xs = '{' : manifold𝟙 comma xs ++ "}"
   toTex [] = "\\varnothing"
+  toTex [[]] = "\\{\\varnothing\\}"
   toTex xs = "\\{" ++ manifold𝟙 comma xs ++ "\\}"
 
 instance Prettify [[𝕾]] where
@@ -49,5 +51,6 @@ instance Prettify [[𝕾]] where
 -- toTex 
 
 
-main = putStrLn $ prettify (ℓ_powerset 4 ["a", "b"])
+main = putStrLn $ prettify (ℓ_powerset 2 [] :: [𝕾])
+-- [] :: [𝕾]
 
