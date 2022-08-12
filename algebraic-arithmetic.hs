@@ -4,6 +4,10 @@
 
 import Data.Ratio
 
+delta :: Bool -> a -> a -> a
+delta True  x _ = x
+delta False _ y = y
+
 data OneVariableMonomial = OneVariableMonomial {
   variable :: String, 
   coefficient :: Rational,
@@ -12,10 +16,6 @@ data OneVariableMonomial = OneVariableMonomial {
 
 occup :: Integer -> Int
 occup x = length (show x)
-
-delta :: Bool -> a -> a -> a
-delta True  x _ = x
-delta False _ y = y
 
 class Prettify a where 
   prettify :: a -> String
@@ -26,12 +26,10 @@ box n = delta (occup n > 1) ('{' : s ++ "}") s
 
 instance Prettify Rational where
   prettify x = show p  ++ '/' : show q
-    where p = numerator x
-          q = denominator x
-  
+    where (p, q) = (numerator x, denominator x)
+    
   toTex x = "\\frac" ++ box p ++ box q
-    where p = numerator x
-          q = denominator x
+    where (p, q) = (numerator x, denominator x)
 
 x = OneVariableMonomial "x" 1 1
 main = putStrLn $ toTex (1 / (-3) :: Rational)
