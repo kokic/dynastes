@@ -31,7 +31,10 @@ instance Prettify Rational where
   toTex x = "\\frac" ++ box p ++ box q
     where (p, q) = (numerator x, denominator x)
 
-x = OneVariableMonomial "x" 1 1
-main = putStrLn $ toTex (1 / (-3) :: Rational)
+
+
+x = OneVariableMonomial "x" 2 3
+
+main = putStrLn $ toTex (7 / (-3) :: Rational)
 
 
