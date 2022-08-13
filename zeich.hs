@@ -1,9 +1,16 @@
 
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE CPP #-}
 
-#include "basis.hs"
+import Data.Char
+import Data.List
+
+delta :: Bool -> a -> a -> a
+delta True  x _ = x
+delta False _ y = y
+
+indexed :: [a] -> [(a, Int)]
+indexed xs = zip xs [0..]
 
 main = putStrLn $ table
   [ [" ", "A", "B"],  
@@ -19,19 +26,19 @@ class OccupComputable a where
   occupWithFence x = fenceOccup + occup x
 
 instance OccupComputable Char where
-  occup x = 𝛅 (isAscii x) 1 2
+  occup x = delta (isAscii x) 1 2
 
 -- `(+) . occup` as `\ x y -> y + occup x`
-instance OccupComputable 𝕾 where
+instance OccupComputable String where
   occup xs = foldr (\ x y -> y + occup x) 0 xs
 
 -- disc
-occupBound :: [𝕾] -> Int
+occupBound :: [String] -> Int
 occupBound xs = foldr (max . occup) 0 xs
 occupBoundWithFence xs = fenceOccup + occupBound xs
 
 lineHeight xs = foldr (\ x y -> y + 𝛍𝚮 x) 1 xs
-  where 𝛍𝚮 x = 𝛅 (x == '\n') 1 0
+  where 𝛍𝚮 x = delta (x == '\n') 1 0
 
 --- --- --- --- --- --- --- --- --- --- --- --- ---
 
@@ -43,19 +50,19 @@ data HorizonForm = HorBoth
   | HorRight 
   deriving (Eq, Show)
 
-line :: HorizonForm -> Int -> 𝕾
+line :: HorizonForm -> Int -> String
 line HorLeft  n = '+' : replicate (n - 2) '-'
 line HorRight n =       replicate (n - 2) '-' ++ ['+']
 line HorBoth  n = '+' : replicate (n - 2) '-' ++ ['+']
 
 -- `(. line HorRight) . (++)` as `\ x y -> x ++ line HorRight y`
-lines𝖱 :: [Int] -> 𝕾
+lines𝖱 :: [Int] -> String
 lines𝖱 xs = foldl 
   ((. line HorRight) . (++)) 
   (line HorBoth (head xs)) 
   (tail xs) ++ "\n"
 
-fence :: HorizonForm -> 𝕾 -> Int -> Int -> 𝕾
+fence :: HorizonForm -> String -> Int -> Int -> String
 fence HorLeft  s left right = '|' : ' ' : spaceX left right s
 fence HorRight s left right =       ' ' : spaceX left right s ++ " |"
 fence HorBoth  s left right = '|' : ' ' : spaceX left right s ++ " |"
@@ -102,9 +109,9 @@ rowCentre𝖱𝛘 xs 𝛘 = fences𝖱𝛘 xs h𝛘
 
 rowEntire𝖱𝛘 xs 𝛘 = lines𝖱 𝛘 ++ rowCentre𝖱𝛘 xs 𝛘 ++ lines𝖱 𝛘
 
-table :: [[𝕾]] -> 𝕾
+table :: [[String]] -> String
 table xs = foldl 
   (\ x y -> x ++ rowCentre𝖱𝛘 y bounds)
   (rowEntire𝖱𝛘 (head xs) bounds)
   (tail xs) ++ lines𝖱 bounds
-  where bounds = map occupBoundWithFence (𝛕 xs)
+  where bounds = map occupBoundWithFence (transpose xs)

@@ -1,10 +1,15 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE CPP #-}
 
+import Data.List
 import qualified Data.Set as Set
 
-#include "basis.hs"
+indexed :: [a] -> [(a, Int)]
+indexed xs = zip xs [0..]
+
+manifold :: ((a -> b) -> b -> a -> b) -> [a] -> (a -> b) -> b
+manifold f xs apply = foldl' (f apply) (apply (head xs)) (tail xs)
+manifold𝟙 f xs = manifold f xs id
 
 -- for simplicity, list is used instead of multiset
 
@@ -12,7 +17,7 @@ import qualified Data.Set as Set
 ℓ_powerset :: (Ord a) => Int -> [a] -> [[a]]
 ℓ_powerset ℓ u | ℓ >= 3 = foldr (++) [] succ
   where succ = [ ℓ_powerset 2 sublist | sublist <- pred ]
-        pred = ℓ_powerset (ℓ-1) u
+        pred = ℓ_powerset (ℓ - 1) u
 ℓ_powerset ℓ u | ℓ == 2 = [[ fst pair | pair <- xs ] 
     | subset <- redundance, let xs = Set.toList subset ]
   where redundance = Set.toList (Set.powerSet uniqueized)
@@ -26,31 +31,30 @@ import qualified Data.Set as Set
 𝜔1 = Set.singleton Set.empty -- {∅}
 
 -- prettify 
-varnothing = "∅"
-
+varnothing = "_" -- ∅ for ASCII
 
 class Prettify a where 
-  prettify :: a -> 𝕾
-  toTex :: a -> 𝕾
+  prettify :: a -> String
+  toTex :: a -> String
 
-comma :: (t -> 𝕾) -> 𝕾 -> t -> 𝕾
+comma :: (t -> String) -> String -> t -> String
 comma apply = \ x y -> x ++ ", " ++ apply y
 
-instance Prettify [𝕾] where
+instance Prettify [String] where
   prettify [] = varnothing
-  prettify [[]] = "{∅}"
+  prettify [[]] = '{' : varnothing ++ "}"
   prettify xs = '{' : manifold𝟙 comma xs ++ "}"
   toTex [] = "\\varnothing"
   toTex [[]] = "\\{\\varnothing\\}"
   toTex xs = "\\{" ++ manifold𝟙 comma xs ++ "\\}"
 
-instance Prettify [[𝕾]] where
+instance Prettify [[String]] where
   prettify xs = '{' : manifold comma xs prettify ++ "}"
   toTex xs = "\\{" ++ manifold comma xs toTex ++ "\\}"
 
 -- toTex 
 
 
-main = putStrLn $ prettify (ℓ_powerset 2 [] :: [𝕾])
--- [] :: [𝕾]
+main = putStrLn $ prettify (ℓ_powerset 2 ["a", "b"])
+-- [] :: [String]
 

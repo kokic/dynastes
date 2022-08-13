@@ -1,9 +1,11 @@
 
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE CPP #-}
 
-#include "basis.hs"
+-- `<stdout>: commitBuffer: invalid argument (invalid character)` on Windows or
+-- `<stdout>: hPutChar: invalid argument (invalid character)`
+
+import Data.Char
 
 main = putStrLn $ trans "Stach! Hasse!" doubleStruck
 
@@ -20,7 +22,7 @@ instance Trans Char where
   trans x xs | isLowerCase x = xs !! (ord x - ord 'A' - lowerCaseOffset)
   trans x _ = x
   
-instance Trans 𝕾 where 
+instance Trans String where 
   trans (x:[]) xs = [trans x xs] -- trans [] _ = []
   trans (e:es) xs = trans e xs : trans es xs
 
@@ -46,6 +48,4 @@ sansBold = ['𝗔'..'𝘇']
 sansItalic = ['𝘈'..'𝘻']
 sansItalicBold = ['𝘼'..'𝙯']
 monospace = ['𝙰'..'𝚣']
-
-
 
