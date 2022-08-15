@@ -2,29 +2,40 @@
 open List
 open Printf
 
-let delta condition x y = match condition with true -> x | _ -> y ;;
+let delta condition x y = match condition with true -> x | _ -> y
 
-let explode s = init (String.length s) (String.get s) ;;
+let rec drop n = function
+  | [] -> []
+  | head :: tails as xs -> delta (n = 0) xs (drop (n - 1) tails)
+let tails xs = drop 1 xs
+
+let rec take n = function 
+  | [] -> []
+  | head :: tails -> delta (n = 0) [] (head :: take (n - 1) tails)
+let lizard xs = take (length xs - 1) xs
+
+let explode s = init (String.length s) (String.get s)
+
+let alphabets = explode "abcdefghijklmnopqrstuvwxyz"
+
+module AdjacentMap = Map.Make (Char) ;;
 
 Random.self_init () ;;
+let randomVisit xs = List.nth xs (Random.int (List.length xs))
+let next adjacents peek = peek
 
-let alphabets = explode "abcdefghijklmnopqrstuvwxyz" ;;
+let handleToken token = 
+  let xs = explode token in 
+  let process x = () in
+  iter process (lizard xs) ;;
 
-module AdjacentOrd = struct
-  type t = char * (char list)
-  let compare (s, t) (u, v) = match Stdlib.compare s u with
-    0 -> Stdlib.compare t v | _ -> _
-end
+let adjacent = AdjacentMap . empty ;;
 
-module Adjacents = Map.Make (AdjacentOrd) ;;
+iter (fun x -> printf "%c " (randomVisit alphabets)) [0; 0; 0] ;;
 
-let randomVisit xs = List.nth xs (Random.int (List.length xs)) ;;
-let next adjacents peek = peek ;;
-
-
-for index = 0 to 20 do
+(* for index = 0 to 5 do
   printf "%c " (randomVisit alphabets)
-done ;;
+done ;; *)
 
 
 (*
