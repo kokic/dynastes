@@ -26,9 +26,11 @@ paren = bundle "(" ")"
 brace = bundle "{" "}"
 
 instance Prettify Rational where
-  prettify x = delta (q > 1) (show p  ++ '/' : show q) (paren p)
+  prettify x | x == 1 = [] | q == 1 = paren p
+    | otherwise = show p ++ '/' : show q
     where (p, q) = (numerator x, denominator x)
-  toTex x = delta (q > 1) ("\\frac" ++ brace p ++ brace q) (brace p)
+  toTex x | x == 1 = [] | q == 1 = brace p
+    | otherwise = "\\frac" ++ brace p ++ brace q
     where (p, q) = (numerator x, denominator x)
 
 instance Prettify OneVariableMonomial where
@@ -36,7 +38,12 @@ instance Prettify OneVariableMonomial where
   toTex x = (toTex (coefficient x)) ++ (variable x) ++ '^' : (toTex (power x))
 
 
+instance Num OneVariableMonomial where
+  (+) x y = y
+
 x = OneVariableMonomial "x" (7 / (-3)) 5
-main = putStrLn $ prettify x ++ "\n" ++ toTex x
+y = OneVariableMonomial "x" 1 5
+z = x + y
+main = putStrLn $ prettify z ++ "\n" ++ toTex z
 
 
