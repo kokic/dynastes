@@ -21,18 +21,34 @@ let alphabets = explode "abcdefghijklmnopqrstuvwxyz"
 module AdjacentMap = Map.Make (Char) ;;
 
 Random.self_init () ;;
-let randomVisit xs = List.nth xs (Random.int (List.length xs))
+let randomVisit xs = nth xs (Random.int (length xs))
 let next adjacents peek = peek
 
+let string_of_pair f (x, y) = f x ^ f y
+let string_of_char_pair = string_of_pair Char.escaped
+
+(* AdjacentMap .mem x adjacent *)
+
+
+let adjacent = AdjacentMap . empty
 let handleToken token = 
   let xs = explode token in 
-  let process x = () in
-  iter process (lizard xs) ;;
+  let process index x =
+    let succ = nth xs (index + 1) in
+    let exists = AdjacentMap.mem x adjacent in 
+    let r = delta exists (adjacent) (AdjacentMap.(adjacent |> add x [succ])) in
+    print_endline (string_of_bool exists) in
+  iteri process (lizard xs) ;;
 
-let adjacent = AdjacentMap . empty ;;
+(* printf "%s " (string_of_char_pair (x, nth xs (index + 1))) *)
 
-iter (fun x -> printf "%c " (randomVisit alphabets)) [0; 0; 0] ;;
+handleToken "ssr" ;;
 
+
+let adjacent = AdjacentMap.(adjacent |> add 'q' ['g']) ;;
+print_int (AdjacentMap.cardinal adjacent)
+
+(* iter (fun x -> printf "%c " (randomVisit alphabets)) [0; 0; 0] ;; *)
 (* for index = 0 to 5 do
   printf "%c " (randomVisit alphabets)
 done ;; *)
