@@ -14,6 +14,9 @@ data OneVariableMonomial = OneVariableMonomial {
   power :: Rational
 } deriving (Eq)
 
+type Monomial = [OneVariableMonomial]
+type Polynomial = [Monomial]
+
 occup :: Integer -> Int
 occup x = length (show x)
 
@@ -38,12 +41,17 @@ instance Prettify OneVariableMonomial where
   toTex x = (toTex (coefficient x)) ++ (variable x) ++ '^' : (toTex (power x))
 
 
+-- data Polynomial = OneVariableMonomialCase OneVariableMonomial 
+
 instance Num OneVariableMonomial where
-  (+) x y = y
+  (+) x y = OneVariableMonomial "x" (coefficient x + coefficient y) (power x)
+
+
 
 x = OneVariableMonomial "x" (7 / (-3)) 5
-y = OneVariableMonomial "x" 1 5
-z = x + y
-main = putStrLn $ prettify z ++ "\n" ++ toTex z
+y = OneVariableMonomial "x" 2 5
+
+main = putStrLn $ prettify z ++ "\n" ++ toTex z where z = x + y
+
 
 

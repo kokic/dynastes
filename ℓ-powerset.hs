@@ -4,6 +4,10 @@
 import Data.List
 import qualified Data.Set as Set
 
+delta :: Bool -> a -> a -> a
+delta True  x _ = x
+delta False _ y = y
+
 indexed :: [a] -> [(a, Int)]
 indexed xs = zip xs [0..]
 
@@ -17,7 +21,7 @@ manifold𝟙 f xs = manifold f xs id
 ℓ_powerset :: (Ord a) => Int -> [a] -> [[a]]
 ℓ_powerset ℓ u | ℓ >= 3 = foldr (++) [] succ
   where succ = [ ℓ_powerset 2 sublist | sublist <- pred ]
-        pred = ℓ_powerset (ℓ - 1) u
+        pred = ℓ_powerset (ℓ - 1) u 
 ℓ_powerset ℓ u | ℓ == 2 = [[ fst pair | pair <- xs ] 
     | subset <- redundance, let xs = Set.toList subset ]
   where redundance = Set.toList (Set.powerSet uniqueized)
@@ -29,6 +33,10 @@ manifold𝟙 f xs = manifold f xs id
 
 -- by the definition, this can also be understood as 1^∅
 𝜔1 = Set.singleton Set.empty -- {∅}
+
+order :: (Eq a) => [a] -> a -> Int
+order xs x = foldl' (\ s t -> s + delta (t == x) 1 0) 0 xs
+
 
 -- prettify 
 varnothing = "_" -- ∅ for ASCII
@@ -55,6 +63,7 @@ instance Prettify [[String]] where
 -- toTex 
 
 
-main = putStrLn $ prettify (ℓ_powerset 2 ["a", "b"])
+main = putStrLn (prettify set) >> print (order set [])
+  where set = ℓ_powerset 4 ["a", "b"]
 -- [] :: [String]
 
