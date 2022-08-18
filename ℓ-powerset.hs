@@ -77,8 +77,14 @@ instance Prettify [[String]] where
 
 -- toTex 
 
-
-main = putStrLn (prettify set) >> print (order set [])
-  where set = ℓ_powerset 4 ["a", "b"]
+main = 
+-- putStrLn (prettify set)
+-- putStrLn (toTex set)
+     print (foldl' (\ s t -> s + delta (length t == 0) 1 0) 0 set)
+  >> print (foldl' (\ s t -> s + delta (length t == 1) 1 0) 0 set)
+  >> print (foldl' (\ s t -> s + delta (length t == 2) 1 0) 0 set)
+  >> print (foldl' (\ s t -> s + delta (length t == 3) 1 0) 0 set)
+  >> print (foldl' (\ s t -> s + delta (length t == 4) 1 0) 0 set)
+  where set = ℓ_powerset 2 ["a", "b", "c", "d"]
 -- [] :: [String]
 
