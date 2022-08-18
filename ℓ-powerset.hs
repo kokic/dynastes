@@ -12,7 +12,7 @@ indexed :: [a] -> [(a, Int)]
 indexed xs = zip xs [0..]
 
 manifold :: ((a -> b) -> b -> a -> b) -> [a] -> (a -> b) -> b
-manifold f xs apply = foldl' (f apply) (apply (head xs)) (tail xs)
+manifold f xs trans = foldl' (f trans) (trans (head xs)) (tail xs)
 manifold𝟙 f xs = manifold f xs id
 
 -- for simplicity, list is used instead of multiset
@@ -61,7 +61,7 @@ class Prettify a where
   toTex :: a -> String
 
 comma :: (t -> String) -> String -> t -> String
-comma apply = \ x y -> x ++ ", " ++ apply y
+comma trans = \ x y -> x ++ ", " ++ trans y
 
 instance Prettify [String] where
   prettify [] = varnothing
