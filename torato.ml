@@ -42,40 +42,45 @@ let string_of_char_pair = string_of_pair Char.escaped
 
 (* AdjacentMap .mem x adjacent *)
 
+let comma = fun trans s t -> s ^ ", " ^ trans t
+let string_of_char_list xs = manifold comma xs Char.escaped "" ;;
 
-let adjacent = ref AdjacentMap . empty
+let print_of_char_map key value = print_endline (Char.escaped key ^ ": " ^ string_of_char_list value) ;;
+
+let adjacent = ref AdjacentMap . empty ;;
+
+let map_find key = AdjacentMap.find key !adjacent ;;
+let map_update key f = AdjacentMap.add key (f (map_find key)) !adjacent ;;
+let map_print key = print_of_char_map key (AdjacentMap.find key !adjacent) ;;
+
+
+adjacent := AdjacentMap.add 's' ['f'] !adjacent ;;
+(* AdjacentMap.iter print_of_char_map !adjacent ;; *)
+
+(* adjacent := map_update 'q' (fun v -> []) ;; *)
+(* AdjacentMap.iter print_of_char_map !adjacent ;; *)
+
+(* adjacent := AdjacentMap.(!adjacent |> add 'q' ['g'; 'm'; 't']) ;; *)
+
+
 let handleToken token = 
   let xs = explode token in 
-  let process index x =
+  let process index key =
     let succ = nth xs (index + 1) in
-    (* let store = 2  in *)
-    let add = AdjacentMap.(!adjacent |> add x [succ]) in 
-    let exists = AdjacentMap.mem x !adjacent in 
-    let _ = adjacent := delta exists (!adjacent) add in
-    print_endline ("") in
+    let store () = map_update key (fun v -> succ :: v) in
+    let add () = AdjacentMap.(!adjacent |> add key [succ]) in 
+    let exists = AdjacentMap.mem key !adjacent in 
+    adjacent := (delta exists store add) () in
+    (* map_print key in *)
   iteri process (lizard xs) ;;
 
 (* printf "%s " (string_of_char_pair (x, nth xs (index + 1))) *)
 
-handleToken "ssr" ;;
+handleToken "mine" ;;
 
+print_endline "---------------- data of map ----------------" ;;
+AdjacentMap.iter print_of_char_map !adjacent ;;
 
-let comma = fun trans s t -> s ^ ", " ^ trans t
-let string_of_char_list xs = manifold comma xs Char.escaped "" ;;
-
-adjacent := AdjacentMap.(!adjacent |> add 'q' ['g'; 'm'; 't']) ;;
-
-let map_find key = AdjacentMap.find key !adjacent ;;
-let map_update key f = AdjacentMap.add key (f (map_find key)) !adjacent ;;
-let map_print key value = print_endline (Char.escaped key ^ ": " ^ string_of_char_list value) ;;
-
-adjacent := AdjacentMap.add 's' ['f'] !adjacent ;;
-
-AdjacentMap.iter map_print !adjacent ;;
-
-adjacent := map_update 'q' (fun v -> []) ;;
-
-AdjacentMap.iter map_print !adjacent ;;
 
 (* iter (fun x -> printf "%c " (randomVisit alphabets)) [0; 0; 0] ;; *)
 (* for index = 0 to 5 do
@@ -97,3 +102,9 @@ print_int (1 + 3) ;;
 print_newline () ;;
 
 *)
+
+
+
+
+
+
