@@ -28,16 +28,19 @@ let case x = case_opt (failwith "case none") x
 let explode s = init (String.length s) (String.get s)
 
 
+
+
+
 (* torato *)
 
 open Printf
 
-let alphabets = explode "abcdefghijklmnopqrstuvwxyz"
-
-module AdjacentMap = Map.Make (Char) ;;
+let alphabets = explode "abcdefghijklmnopqrstuvwxyz" ;;
 
 Random.self_init () ;;
 let random_visit xs = nth xs (Random.int (length xs))
+
+module AdjacentMap = Map.Make (Char)
 
 let string_of_pair f (x, y) = f x ^ f y
 let string_of_char_pair = string_of_pair Char.escaped
@@ -45,18 +48,22 @@ let string_of_char_pair = string_of_pair Char.escaped
 (* AdjacentMap .mem x adjacent *)
 
 let comma = fun trans s t -> s ^ ", " ^ trans t
-let string_of_char_list xs = manifold comma xs Char.escaped "" ;;
-let print_of_char_map key value = print_endline (Char.escaped key ^ ": " ^ string_of_char_list value) ;;
-
+let string_of_char_list xs = manifold comma xs Char.escaped ""
+let print_of_char_map key value = print_endline (Char.escaped key ^ ": " ^ string_of_char_list value)
 
 (* construction of adjacent *)
 
 let adjacent = ref AdjacentMap . empty ;;
 
-let map_find key = AdjacentMap.find key !adjacent ;;
-let map_update key f = AdjacentMap.add key (f (map_find key)) !adjacent ;;
-let map_exists key = AdjacentMap.mem key !adjacent ;; 
-let map_print key = print_of_char_map key (AdjacentMap.find key !adjacent) ;;
+let map_find key = AdjacentMap.find key !adjacent
+let map_update key f = AdjacentMap.add key (f (map_find key)) !adjacent
+let map_exists key = AdjacentMap.mem key !adjacent
+let map_keys () = map (fun (k, v) -> k) (AdjacentMap.bindings !adjacent)
+let map_values () = map (fun (k, v) -> v) (AdjacentMap.bindings !adjacent)
+let map_random_key () = random_visit (map_keys ())
+let map_print key = print_of_char_map key (AdjacentMap.find key !adjacent)
+
+
 
 (* adjacent := AdjacentMap.add 's' ['f'] !adjacent ;; *)
 (* AdjacentMap.iter print_of_char_map !adjacent ;; *)
@@ -91,22 +98,27 @@ handle_tokens ["galois"; "euphoria"; "topology"] ;;
 (* AdjacentMap.iter print_of_char_map !adjacent ;; *)
 print_endline "---------------- output ----------------" ;;
 
-let next_free_grapheme peek = random_visit (map_find peek) ;;
-(* aux: [head] -> [head, peek, peek, ...] *)
+let next_grapheme peek = random_visit (map_find peek) ;;
 
+(* rec token_builder : 
+     [head] n -> [head, next]
+  => [head, next] (n - 1) -> [head, next, next] 
+  ... ... ... 
+  => [head, next, ..., next] 1 -> [head, next, ..., next] *)
 let rec token_builder xs len = 
   let cur = last xs in
   let found = map_exists cur in 
   match len == 0 || not found with | true -> xs 
-    | false -> let xs' = push xs (next_free_grapheme cur) in 
+    | false -> let xs' = push xs (next_grapheme cur) in 
       token_builder xs' (len - 1)
 
 let glue = fun s t -> s ^ Char.escaped t
-let next_free_token_fixed head len = fold_left glue "" (token_builder [head] len) ;;
+let next_token_fixed head len = fold_left glue "" (token_builder [head] len)
+let next_token len = next_token_fixed (map_random_key ()) len ;;
 
 (* iter (fun x -> printf "%c " (randomVisit alphabets)) [0; 0; 0] ;; *)
 for index = 0 to 5 do
-  print_endline (next_free_token_fixed 'a' 5)
+  print_endline (next_token 5)
   (* (next_free_token_fixed 'a' 5) *)
 done ;;
 
