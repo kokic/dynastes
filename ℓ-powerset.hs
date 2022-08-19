@@ -39,20 +39,19 @@ manifold𝟙 f xs = manifold f xs id
 𝜔1 = Set.singleton Set.empty -- {∅}
 
 
--- definition. order γ for X := |{x ∈ X : x = γ }| i.e. number of γ
+-- definition. order γ for X := |{ x ∈ X : x = γ }| i.e. number of γ
 order :: (Eq a) => [a] -> a -> Int
 order xs x | xs == [] = 0
 order xs x = foldl' (\ s t -> s + delta (t == x) 1 0) 0 xs
 
--- theorem. (a) order  ∅  for (ℓ+1)^X = ℓ^2
---          (b) order {x} for (ℓ+1)^X, ∀ x ∈ X = ℓ
---          (c) order  X  for (ℓ+1)^X = 1
-
+-- theorem. order γ for ℓ^X where γ ∈ 2^X = (|X| choose |γ|) (ℓ - 1)^|X|
 -- proof. ...
- 
+
+-- corollary. (a) order ∅ for ℓ^X = (ℓ - 1)^|X|
+--            (b) ∑ order γ for ℓ^X where γ ∈ 2^X = ℓ^|X|
+
 -- theorem. if S = ℓ^X, then ℓ = 1 + order {x} for S, ∀ x ∈ X
 --       ⟺ ℓ = 1 + sum 1 for Y ∈ ℓ^X, |Y| = 1
-
 
 -- prettify 
 varnothing = "_" -- ∅ for ASCII
