@@ -1,4 +1,5 @@
 
+
 (* basic utils *)
 
 open List
@@ -80,6 +81,9 @@ let handle_tokens xs = iter handle_token xs ;;
 
 (* printf "%s " (string_of_char_pair (x, nth xs (index + 1))) *)
 (* handleToken "mine" ;; *)
+
+
+(* generator *)
 
 handle_tokens ["galois"; "euphoria"; "topology"] ;;
 
