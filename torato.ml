@@ -1,5 +1,4 @@
 
-
 (* basic utils *)
 
 open List
@@ -27,9 +26,29 @@ let case x = case_opt (failwith "case none") x
 
 let explode s = init (String.length s) (String.get s)
 
+let string_of_pair f (x, y) = f x ^ f y
+let string_of_char_pair = string_of_pair Char.escaped
 
+let comma = fun trans s t -> s ^ ", " ^ trans t
+let string_of_char_list xs = manifold comma xs Char.escaped ""
+let print_of_char_map key value = let s = string_of_char_list value in
+  print_endline (Char.escaped key ^ ": " ^ s)
 
+let list_of_string s = let xs = ref [] in 
+  for index = 0 to String.length s - 1 do
+    xs := push !xs s.[index]
+  done; !xs
 
+let unique xs = let xs' = ref [] in
+  for index = 0 to length xs - 1 do
+    let x = nth xs index in
+    match mem x !xs' with true -> ()
+      | false -> xs' := push !xs' x
+  done; !xs'
+
+let degree_at xs x = fold_left (fun u v -> u + delta (x == v) 1 0) 0 xs
+let degree s = let xs = list_of_string s in let xs' = unique xs in
+  fold_left (fun u v -> let deg = degree_at xs v in delta (u > deg) u deg) 0 xs'
 
 (* torato *)
 
@@ -42,14 +61,7 @@ let random_visit xs = nth xs (Random.int (length xs))
 
 module AdjacentMap = Map.Make (Char)
 
-let string_of_pair f (x, y) = f x ^ f y
-let string_of_char_pair = string_of_pair Char.escaped
-
 (* AdjacentMap .mem x adjacent *)
-
-let comma = fun trans s t -> s ^ ", " ^ trans t
-let string_of_char_list xs = manifold comma xs Char.escaped ""
-let print_of_char_map key value = print_endline (Char.escaped key ^ ": " ^ string_of_char_list value)
 
 (* construction of adjacent *)
 
@@ -62,8 +74,6 @@ let map_keys () = map (fun (k, v) -> k) (AdjacentMap.bindings !adjacent)
 let map_values () = map (fun (k, v) -> v) (AdjacentMap.bindings !adjacent)
 let map_random_key () = random_visit (map_keys ())
 let map_print key = print_of_char_map key (AdjacentMap.find key !adjacent)
-
-
 
 (* adjacent := AdjacentMap.add 's' ['f'] !adjacent ;; *)
 (* AdjacentMap.iter print_of_char_map !adjacent ;; *)
@@ -92,7 +102,16 @@ let handle_tokens xs = iter handle_token xs ;;
 
 (* generator *)
 
-handle_tokens ["galois"; "euphoria"; "topology"] ;;
+handle_tokens [
+  "galois"; 
+  "euphoria"; 
+  "topology";
+  "algebraic";
+  "geometry";
+  "cohomology";
+  "faltings";
+  "gauss";  
+] ;;
 
 (* print_endline "---------------- data of map ----------------" ;; *)
 (* AdjacentMap.iter print_of_char_map !adjacent ;; *)
@@ -104,22 +123,55 @@ let next_grapheme peek = random_visit (map_find peek) ;;
      [head] n -> [head, next]
   => [head, next] (n - 1) -> [head, next, next] 
   ... ... ... 
-  => [head, next, ..., next] 1 -> [head, next, ..., next] *)
+  => [head, next, ..., next] 1 -> xs *)
 let rec token_builder xs len = 
   let cur = last xs in
   let found = map_exists cur in 
-  match len == 0 || not found with | true -> xs 
+  match len == 1 || not found with | true -> xs 
     | false -> let xs' = push xs (next_grapheme cur) in 
       token_builder xs' (len - 1)
 
 let glue = fun s t -> s ^ Char.escaped t
 let next_token_fixed head len = fold_left glue "" (token_builder [head] len)
-let next_token len = next_token_fixed (map_random_key ()) len ;;
+let next_token = next_token_fixed (map_random_key ())
+
+
+(* filter predicate *)
+
+let pred_aequilate len = fun token -> String.length token == len
+let pred_degree_less n = fun token -> degree token <= n
+
+(* unsafe function due to possible endless recursion *)
+(* notice: the adjacent should be large enough *)
+let rec next_filtered_fixed_unsafe head len predicate = 
+  let candidate = next_token_fixed head len in 
+  match predicate candidate with true -> candidate
+    | false -> next_filtered_fixed_unsafe head len predicate
+
+let next_filtered_unsafe = next_filtered_fixed_unsafe (map_random_key ())
+let next_aequilate_unsafe len = 
+let head = map_random_key () in
+    print_string (Char.escaped head ^ ", ") ;
+    next_filtered_fixed_unsafe (head) len (pred_aequilate len) ;;
+
+(* a better version with option *)
+let rec next_filtered_fixed head len predicate = 
+  let candidate = next_token_fixed head len in 
+  match predicate candidate with true -> Some candidate
+    | false -> None
+
+let next_filtered = next_filtered_fixed (map_random_key ())
+let next_aequilate len = 
+  let head = map_random_key () in
+  print_string (Char.escaped head ^ ", ") ;
+  next_filtered_fixed (head) len (pred_aequilate len) ;;
+
 
 (* iter (fun x -> printf "%c " (randomVisit alphabets)) [0; 0; 0] ;; *)
-for index = 0 to 5 do
-  print_endline (next_token 5)
-  (* (next_free_token_fixed 'a' 5) *)
+for index = 1 to 5 do
+  print_endline (case_opt "_____" (next_aequilate 5))
+  (* print_endline (next_aequilate_unsafe 5) *)
+  (* print_endline (next_token_fixed 'a' 5) *)
 done ;;
 
 

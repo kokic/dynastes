@@ -12,6 +12,7 @@ indexed :: [a] -> [(a, Int)]
 indexed xs = zip xs [0..]
 
 manifold :: ((a -> b) -> b -> a -> b) -> [a] -> (a -> b) -> b
+-- assume xs != [], head or tail [] => exception
 manifold f xs trans = foldl' (f trans) (trans (head xs)) (tail xs)
 manifold𝟙 f xs = manifold f xs id
 
