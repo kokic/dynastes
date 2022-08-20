@@ -13,44 +13,75 @@ Reference:
 That's all, thanks! 
 *)
 
+module StringMap = Map.Make (String)
+
+let mangle_encodings = StringMap . ( empty 
+  (* Compression *)
+  |> add "St" "std::"
+  |> add "Sa" "std::allocator"
+  |> add "Sb" "std::basic_string"
+  |> add "Ss" "std::string"
+  |> add "Si" "std::istream"
+  |> add "So" "std::ostream"
+  |> add "Sd" "std::iostream"
+  
+  (* Builtin types *)
+  |> add "v" "void"
+  |> add "w" "wchar_t"
+  |> add "b" "bool"
+
+  |> add "c" "char" |> add "a" "signed char" |> add "h" "unsigned char"
+  |> add "s" "short" |> add "t" "unsigned short"
+  |> add "i" "int" |> add "j" "unsigned int"
+  |> add "l" "long" |> add "m" "unsigned long"
+  |> add "x" "long long" |> add "y" "unsigned long long"
+  |> add "n" "__int128" |> add "o" "unsigned __int128"
+  |> add "f" "float"
+  |> add "d" "double"
+  |> add "e" "long double"
+  |> add "g" "__float128" (* __float80 *)
+  |> add "z" "ellipsis" (* ... *)
+)
+
 (* 
                               Compression
 
    <substitution> ::= St # ::std::
    <substitution> ::= Sa # ::std::allocator
    <substitution> ::= Sb # ::std::basic_string
-   <substitution> ::= Ss # ::std::basic_string < char,
-						 ::std::char_traits<char>,
-						 ::std::allocator<char> >
+   <substitution> ::= Ss # ::std::basic_string < char, 
+                                                 ::std::char_traits<char>, 
+                                                 ::std::allocator<char> >
    <substitution> ::= Si # ::std::basic_istream<char,  std::char_traits<char> >
    <substitution> ::= So # ::std::basic_ostream<char,  std::char_traits<char> >
    <substitution> ::= Sd # ::std::basic_iostream<char, std::char_traits<char> >
 *)
 
 (*
-Builtin types
+              Builtin types
 
-  <builtin-type> ::= v	# void
-		 ::= w	# wchar_t
-		 ::= b	# bool
-		 ::= c	# char
-		 ::= a	# signed char
-		 ::= h	# unsigned char
-		 ::= s	# short
-		 ::= t	# unsigned short
-		 ::= i	# int
-		 ::= j	# unsigned int
-		 ::= l	# long
-		 ::= m	# unsigned long
-		 ::= x	# long long, __int64
-		 ::= y	# unsigned long long, __int64
-		 ::= n	# __int128
-		 ::= o	# unsigned __int128
-		 ::= f	# float
-		 ::= d	# double
-		 ::= e	# long double, __float80
-		 ::= g	# __float128
-		 ::= z	# ellipsis
+  <builtin-type> 
+     ::= v  # void
+     ::= w  # wchar_t
+     ::= b  # bool
+     ::= c  # char
+     ::= a  # signed char
+     ::= h  # unsigned char
+     ::= s  # short
+     ::= t  # unsigned short
+     ::= i  # int
+     ::= j  # unsigned int
+     ::= l  # long
+     ::= m  # unsigned long
+     ::= x  # long long, __int64
+     ::= y  # unsigned long long, __int64
+     ::= n  # __int128
+     ::= o  # unsigned __int128
+     ::= f  # float
+     ::= d  # double
+     ::= e  # long double, __float80
+     ::= g  # __float128
+     ::= z  # ellipsis
      ::= Dd # IEEE 754r decimal floating point (64 bits)
      ::= De # IEEE 754r decimal floating point (128 bits)
      ::= Df # IEEE 754r decimal floating point (32 bits)
@@ -66,7 +97,7 @@ Builtin types
      ::= Da # auto
      ::= Dc # decltype(auto)
      ::= Dn # std::nullptr_t (i.e., decltype(nullptr))
-		 ::= u <source-name> [<template-args>] # vendor extended type
+     ::= u <source-name> [<template-args>] # vendor extended type
 *)
 
 
@@ -93,67 +124,67 @@ Builtin types
 (* 
     Operator Encodings:
 
-<operator-name> ::= nw	# new           
-		  ::= na	# new[]
-		  ::= dl	# delete        
-		  ::= da	# delete[]      
-		  ::= aw	# co_await      
-		  ::= ps  # + (unary)
-		  ::= ng	# - (unary)     
-		  ::= ad	# & (unary)     
-		  ::= de	# * (unary)     
-		  ::= co	# ~             
-		  ::= pl	# +             
-		  ::= mi	# -             
-		  ::= ml	# *             
-		  ::= dv	# /             
-		  ::= rm	# %             
-		  ::= an	# &             
-		  ::= or	# |             
-		  ::= eo	# ^             
-		  ::= aS	# =             
-		  ::= pL	# +=            
-		  ::= mI	# -=            
-		  ::= mL	# *=            
-		  ::= dV	# /=            
-		  ::= rM	# %=            
-		  ::= aN	# &=            
-		  ::= oR	# |=            
-		  ::= eO	# ^=            
-		  ::= ls	# <<            
-		  ::= rs	# >>            
-		  ::= lS	# <<=           
-		  ::= rS	# >>=           
-		  ::= eq	# ==            
-		  ::= ne	# !=            
-		  ::= lt	# <             
-		  ::= gt	# >             
-		  ::= le	# <=            
-		  ::= ge	# >=            
-		  ::= ss	# <=>           
-		  ::= nt	# !             
-		  ::= aa	# &&            
-		  ::= oo	# ||            
-		  ::= pp	# ++ (postfix in <expression> context)
-		  ::= mm	# -- (postfix in <expression> context)           
-		  ::= cm	# ,             
-		  ::= pm	# ->*           
-		  ::= pt	# ->            
-		  ::= cl	# ()            
-		  ::= ix	# []            
-		  ::= qu	# ?             
-		  ::= cv <type>	# (cast)
+<operator-name> ::= nw  # new           
+      ::= na  # new[]
+      ::= dl  # delete        
+      ::= da  # delete[]      
+      ::= aw  # co_await      
+      ::= ps  # + (unary)
+      ::= ng  # - (unary)     
+      ::= ad  # & (unary)     
+      ::= de  # * (unary)     
+      ::= co  # ~             
+      ::= pl  # +             
+      ::= mi  # -             
+      ::= ml  # *             
+      ::= dv  # /             
+      ::= rm  # %             
+      ::= an  # &             
+      ::= or  # |             
+      ::= eo  # ^             
+      ::= aS  # =             
+      ::= pL  # +=            
+      ::= mI  # -=            
+      ::= mL  # *=            
+      ::= dV  # /=            
+      ::= rM  # %=            
+      ::= aN  # &=            
+      ::= oR  # |=            
+      ::= eO  # ^=            
+      ::= ls  # <<            
+      ::= rs  # >>            
+      ::= lS  # <<=           
+      ::= rS  # >>=           
+      ::= eq  # ==            
+      ::= ne  # !=            
+      ::= lt  # <             
+      ::= gt  # >             
+      ::= le  # <=            
+      ::= ge  # >=            
+      ::= ss  # <=>           
+      ::= nt  # !             
+      ::= aa  # &&            
+      ::= oo  # ||            
+      ::= pp  # ++ (postfix in <expression> context)
+      ::= mm  # -- (postfix in <expression> context)           
+      ::= cm  # ,             
+      ::= pm  # ->*           
+      ::= pt  # ->            
+      ::= cl  # ()            
+      ::= ix  # []            
+      ::= qu  # ?             
+      ::= cv <type>  # (cast)
       ::= li <source-name>        # operator ""
-		  ::= v <digit> <source-name>	# vendor extended operator
+      ::= v <digit> <source-name>  # vendor extended operator
 *)
 
 (*                 
                Virtual Tables and RTTI
 
-<special-name> ::= TV <type>	# virtual table
-		 ::= TT <type>	# VTT structure (construction vtable index)
-		 ::= TI <type>	# typeinfo structure
-		 ::= TS <type>	# typeinfo name (null-terminated byte string)
+<special-name> ::= TV <type>  # virtual table
+     ::= TT <type>  # VTT structure (construction vtable index)
+     ::= TI <type>  # typeinfo structure
+     ::= TS <type>  # typeinfo name (null-terminated byte string)
 *)
 
 
