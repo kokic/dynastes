@@ -4,10 +4,17 @@
 
 -- `<stdout>: commitBuffer: invalid argument (invalid character)` on Windows or
 -- `<stdout>: hPutChar: invalid argument (invalid character)`
+-- solution: https://gitlab.haskell.org/ghc/ghc/-/issues/8118
+
+import GHC.IO.Encoding -- setLocaleEncoding utf8
+import System.Win32.Console -- setConsoleOutputCP 65001
 
 import Data.Char
 
-main = putStrLn $ trans "Stach! Hasse!" doubleStruck
+main = do
+  setLocaleEncoding utf8
+  setConsoleOutputCP 65001
+  putStrLn $ trans "Stach! Hasse!" doubleStruck
 
 lowerCaseOffset = ord 'a' - ord 'Z' - 1
 
