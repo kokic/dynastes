@@ -15,7 +15,28 @@ That's all, thanks!
 
 module StringMap = Map.Make (String)
 
-let mangle_encodings = StringMap . ( empty 
+(*  
+  +---------------------------+-----------------------+
+  | L fully-qualified-class ; | fully-qualified-class |
+  +---------------------------+-----------------------+
+  | [ type                    | type[]                |
+  +---------------------------+-----------------------+
+  | ( arg-types ) ret-type    | method type           |
+  +---------------------------+-----------------------+
+*)
+
+let jvm_mangle_encodings = StringMap . ( empty 
+  |> add "Z" "boolean"
+  |> add "B" "byte"
+  |> add "C" "char"
+  |> add "S" "short"
+  |> add "I" "int"
+  |> add "J" "long"
+  |> add "F" "float"
+  |> add "D" "double"
+)
+
+let gcc_mangle_encodings = StringMap . ( empty 
   (* Compression *)
   |> add "St" "std::"
   |> add "Sa" "std::allocator"
