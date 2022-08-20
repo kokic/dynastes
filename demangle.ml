@@ -13,6 +13,20 @@ Reference:
 That's all, thanks! 
 *)
 
+(* 
+                              Compression
+
+   <substitution> ::= St # ::std::
+   <substitution> ::= Sa # ::std::allocator
+   <substitution> ::= Sb # ::std::basic_string
+   <substitution> ::= Ss # ::std::basic_string < char,
+						 ::std::char_traits<char>,
+						 ::std::allocator<char> >
+   <substitution> ::= Si # ::std::basic_istream<char,  std::char_traits<char> >
+   <substitution> ::= So # ::std::basic_ostream<char,  std::char_traits<char> >
+   <substitution> ::= Sd # ::std::basic_iostream<char, std::char_traits<char> >
+*)
+
 (*
 Builtin types
 
@@ -54,6 +68,7 @@ Builtin types
      ::= Dn # std::nullptr_t (i.e., decltype(nullptr))
 		 ::= u <source-name> [<template-args>] # vendor extended type
 *)
+
 
 (*
                        Type encodings
