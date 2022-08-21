@@ -9,14 +9,16 @@
 
 import GHC.IO.Encoding -- setLocaleEncoding utf8
 
-#ifndef linux_HOST_OS
+-- #ifndef linux_HOST_OS
+#ifdef mingw32_HOST_OS 
+-- mingw32_BUILD_OS
 import System.Win32.Console -- setConsoleOutputCP 65001
 #endif
 
 import Data.Char
 
 main = do
-#ifndef linux_HOST_OS
+#ifdef mingw32_HOST_OS
   setLocaleEncoding utf8
   setConsoleOutputCP 65001
 #endif
