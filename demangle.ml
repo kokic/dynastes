@@ -78,53 +78,47 @@ let jvm_mangle_encodings = StringMap . ( empty
   |> add "J" "long"
   |> add "F" "float"
   |> add "D" "double"
+  |> add "V" "void"
 )
 
-(*
-let wrap s x = s ^ x ^ s
-let wrap_char = wrap "'"
-let wrap_string = wrap "\"" 
-
-let generate_string maps = StringMap.fold 
-  (fun k v s -> s ^ "| " ^ wrap_char k ^ " -> " ^ wrap_string v ^ "\n") maps "" 
-*)
-
-(* print_endline (generate_string jvm_mangle_encodings) *)
+let unknown = "__unknown" (* unknown type *)
 
 let is_primitive c = 
+  (* ----- *) c == 'V' ||
   c == 'B' || c == 'C' || 
   c == 'D' || c == 'F' || 
   c == 'I' || c == 'J' ||
   c == 'S' || c == 'Z'
-let of_primitive s = StringMap.find s jvm_mangle_encodings
+let of_primitive s = match is_primitive s.[0] with
+  true -> StringMap.find s jvm_mangle_encodings | _ -> unknown
 
 let dotify s = string_of_chars (map ('/' |-> '.') (list_of_string s))
 let is_reference s = s.[0] == 'L' && s.[String.length s - 1] == ';'
-let of_reference s = dotify (mids s)
+let of_reference s = match is_reference s with
+  true -> dotify (mids s) | _ -> unknown
 
-let of_type s = let len = String.length s in match len with 
-    1 -> if is_primitive s.[0] then of_primitive s else "__error"
-  | _ -> if is_reference s then of_reference s else "__error"
+let of_type s = let case = match String.length s with 
+  1 -> of_primitive | _ -> of_reference in case s
 
 let rec scan s xs = match String.length s with 0 -> xs | _ -> 
   let head = s.[0] in let consume n = drops n s in match head with 
     'L' -> let pos = String.index s ';' in 
            let aka = dotify (subs s 1 (pos - 1)) in
            scan (consume (pos + 1)) (push xs aka)
-  | ___ -> match is_primitive head with 
-      true -> scan (consume 1) (push xs (of_primitive (Char.escaped head)))
-    | ____ -> scan (consume 1) (push xs "__error")
+  | ___ -> scan (consume 1) (push xs (of_primitive (Char.escaped head)))
+let scan' s = scan s [] 
+(* ;; print_endline (String.concat ", " (scan' "ILjava/lang/String;J")) *)
 
-(* print_endline (String.concat ", " (scan "ILjava/lang/String;J" [])) *)
-
-
-let of_method s = match s.[0] with 
+let of_method s name = match s.[0] with 
     '(' -> let pos = String.index s ')' in
            let ret = of_type (drops (pos + 1) s) in
-           ret
-  | ___ -> "__error"
-;;
-print_endline (of_method "()I")
+           let res = scan' (subs s 1 (pos - 1)) in
+           let cat = String.concat ", " res in
+           ret ^ " " ^ name ^ "(" ^ cat ^ ")"
+  | ___ -> unknown
+let of_method' s = of_method s ""
+
+(* ;; print_endline (of_method "(IZLjava/lang/Object;)V" "test") *)
 
 
 (* GCC - Itanium C++ ABI’s name mangling rules *)
