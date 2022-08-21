@@ -41,8 +41,9 @@ let manifold f xs trans default = match xs with [] -> default
 let glue = fun trans s t -> s ^ trans t
 let string_of_chars xs = manifold glue xs Char.escaped ""
 
-let subs s off pos = String.sub s off (String.length s - off - pos)
-let drops n s = subs s n 0
+let subs s off pos = String.sub s off (pos - off + 1)
+let mids s = subs s 1 (String.length s - 1)
+let drops n s = subs s n (String.length s - 1)
 
 let list_of_string s = let xs = ref [] in 
   for index = 0 to String.length s - 1 do
@@ -79,55 +80,51 @@ let jvm_mangle_encodings = StringMap . ( empty
   |> add "D" "double"
 )
 
-let jvm_mangle_find x = StringMap.find x jvm_mangle_encodings
-
+(*
 let wrap s x = s ^ x ^ s
 let wrap_char = wrap "'"
 let wrap_string = wrap "\"" 
 
 let generate_string maps = StringMap.fold 
   (fun k v s -> s ^ "| " ^ wrap_char k ^ " -> " ^ wrap_string v ^ "\n") maps "" 
+*)
 
 (* print_endline (generate_string jvm_mangle_encodings) *)
-
-let is_reference s = s.[0] == 'L' && s.[String.length s - 1] == ';'
-let of_reference s = let qualified = tails (lizard (list_of_string s)) in 
-  string_of_chars (map ('/' |-> '.') qualified)
 
 let is_primitive c = 
   c == 'B' || c == 'C' || 
   c == 'D' || c == 'F' || 
   c == 'I' || c == 'J' ||
   c == 'S' || c == 'Z'
+let of_primitive s = StringMap.find s jvm_mangle_encodings
+
+let dotify s = string_of_chars (map ('/' |-> '.') (list_of_string s))
+let is_reference s = s.[0] == 'L' && s.[String.length s - 1] == ';'
+let of_reference s = dotify (mids s)
+
+let of_type s = let len = String.length s in match len with 
+    1 -> if is_primitive s.[0] then of_primitive s else "__error"
+  | _ -> if is_reference s then of_reference s else "__error"
 
 let rec scan s xs = match String.length s with 0 -> xs | _ -> 
-  let head = s.[0] in let consume n = drops n s in 
-  match head with 
+  let head = s.[0] in let consume n = drops n s in match head with 
     'L' -> let pos = String.index s ';' in 
-           scan (consume pos) (push xs (subs s 0 pos)) 
-  | ___ -> 
-    match is_primitive head with 
-      true -> scan (consume 1) (push xs (jvm_mangle_find (Char.escaped head)))
+           let aka = dotify (subs s 1 (pos - 1)) in
+           scan (consume (pos + 1)) (push xs aka)
+  | ___ -> match is_primitive head with 
+      true -> scan (consume 1) (push xs (of_primitive (Char.escaped head)))
     | ____ -> scan (consume 1) (push xs "__error")
+
+(* print_endline (String.concat ", " (scan "ILjava/lang/String;J" [])) *)
+
+
+let of_method s = match s.[0] with 
+    '(' -> let pos = String.index s ')' in
+           let ret = of_type (drops (pos + 1) s) in
+           ret
+  | ___ -> "__error"
 ;;
-print_endline (String.concat ", " (scan "IIIJ" []))
-
-
-let of_types args = 0  
-    (* match s'.[0] with 
-    | 'B' -> push xs "byte"  
-    | 'C' -> push xs "char"  
-    | 'D' -> push xs "double"
-    | 'F' -> push xs "float" 
-    | 'I' -> push xs "int"   
-    | 'J' -> push xs "long"
-    | 'S' -> push xs "short" 
-    | 'Z' -> push xs "boolean"
-    | ___ -> match is_reference s with 
-      | true -> push xs (of_reference s) 
-      | ____ -> push xs "__error" *)
-
-(* print_endline (of_type "Ljava/lang/String;") *)
+print_endline (of_method "()I")
 
 
 (* GCC - Itanium C++ ABI’s name mangling rules *)
