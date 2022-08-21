@@ -9,11 +9,54 @@ Inspiration by:
 Reference:
   - https://fitzgeraldnick.com/2017/02/22/cpp-demangle.html (in Rust)
   - https://itanium-cxx-abi.github.io/cxx-abi/abi.html (Itanium C++ ABI’s name mangling rules)
+  - https://docs.oracle.com/javase/10/docs/api/com/sun/jdi/doc-files/signature.html
+  - https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html
 
 That's all, thanks! 
+
 *)
 
+
+(* basic util *)
+open List
+
+let delta condition x y = if condition then x else y
+
+let last xs = nth xs (length xs - 1)
+let push xs x = xs @ [x]
+
+let (|->) s t = fun x -> delta (x == s) t x
+
+let rec drop n = function [] -> []
+  | head :: tails as xs -> match n with 0 -> xs | _ -> (drop (n - 1) tails)
+let tails xs = drop 1 xs
+
+let rec take n = function [] -> []
+  | head :: tails -> match n with 0 -> [] | _ -> head :: take (n - 1) tails
+let lizard xs = take (length xs - 1) xs
+
+let manifold f xs trans default = match xs with [] -> default
+  | head :: tails -> fold_left (f trans) (trans head) tails
+
+let glue = fun trans s t -> s ^ trans t
+let string_of_chars xs = manifold glue xs Char.escaped ""
+
+let subs s off pos = String.sub s off (String.length s - off - pos)
+let drops n s = subs s n 0
+
+let list_of_string s = let xs = ref [] in 
+  for index = 0 to String.length s - 1 do
+    xs := push !xs s.[index]
+  done; !xs
+
+
+
+
+(* demangle *)
+
 module StringMap = Map.Make (String)
+
+(* JVM - JDI Type Signatures *)
 
 (*  
   +---------------------------+-----------------------+
@@ -35,6 +78,59 @@ let jvm_mangle_encodings = StringMap . ( empty
   |> add "F" "float"
   |> add "D" "double"
 )
+
+let jvm_mangle_find x = StringMap.find x jvm_mangle_encodings
+
+let wrap s x = s ^ x ^ s
+let wrap_char = wrap "'"
+let wrap_string = wrap "\"" 
+
+let generate_string maps = StringMap.fold 
+  (fun k v s -> s ^ "| " ^ wrap_char k ^ " -> " ^ wrap_string v ^ "\n") maps "" 
+
+(* print_endline (generate_string jvm_mangle_encodings) *)
+
+let is_reference s = s.[0] == 'L' && s.[String.length s - 1] == ';'
+let of_reference s = let qualified = tails (lizard (list_of_string s)) in 
+  string_of_chars (map ('/' |-> '.') qualified)
+
+let is_primitive c = 
+  c == 'B' || c == 'C' || 
+  c == 'D' || c == 'F' || 
+  c == 'I' || c == 'J' ||
+  c == 'S' || c == 'Z'
+
+let rec scan s xs = match String.length s with 0 -> xs | _ -> 
+  let head = s.[0] in let consume n = drops n s in 
+  match head with 
+    'L' -> let pos = String.index s ';' in 
+           scan (consume pos) (push xs (subs s 0 pos)) 
+  | ___ -> 
+    match is_primitive head with 
+      true -> scan (consume 1) (push xs (jvm_mangle_find (Char.escaped head)))
+    | ____ -> scan (consume 1) (push xs "__error")
+;;
+print_endline (String.concat ", " (scan "IIIJ" []))
+
+
+let of_types args = 0  
+    (* match s'.[0] with 
+    | 'B' -> push xs "byte"  
+    | 'C' -> push xs "char"  
+    | 'D' -> push xs "double"
+    | 'F' -> push xs "float" 
+    | 'I' -> push xs "int"   
+    | 'J' -> push xs "long"
+    | 'S' -> push xs "short" 
+    | 'Z' -> push xs "boolean"
+    | ___ -> match is_reference s with 
+      | true -> push xs (of_reference s) 
+      | ____ -> push xs "__error" *)
+
+(* print_endline (of_type "Ljava/lang/String;") *)
+
+
+(* GCC - Itanium C++ ABI’s name mangling rules *)
 
 let gcc_mangle_encodings = StringMap . ( empty 
   (* Compression *)

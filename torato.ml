@@ -11,11 +11,11 @@ let last xs = nth xs (length xs - 1)
 let push xs x = xs @ [x]
 
 let rec drop n = function [] -> []
-  | head :: tails as xs -> delta (n = 0) xs (drop (n - 1) tails)
+  | head :: tails as xs -> match n with 0 -> xs | _ -> (drop (n - 1) tails)
 let tails xs = drop 1 xs
 
 let rec take n = function [] -> []
-  | head :: tails -> delta (n = 0) [] (head :: take (n - 1) tails)
+  | head :: tails -> match n with 0 -> [] | _ -> head :: take (n - 1) tails
 let lizard xs = take (length xs - 1) xs
 
 let manifold f xs trans default = match xs with [] -> default
@@ -30,10 +30,9 @@ let rec repeat s = function 1 -> s | n -> s ^ repeat s (n - 1)
 let string_of_pair f (x, y) = f x ^ f y
 let string_of_char_pair = string_of_pair Char.escaped
 
+let glue = fun s t -> s ^ Char.escaped t
 let comma = fun trans s t -> s ^ ", " ^ trans t
 let string_of_char_list xs = manifold comma xs Char.escaped ""
-let print_of_char_map key value = let s = string_of_char_list value in
-  print_endline (Char.escaped key ^ ": " ^ s)
 
 let list_of_string s = let xs = ref [] in 
   for index = 0 to String.length s - 1 do
@@ -65,6 +64,9 @@ let random_visit xs = nth xs (Random.int (length xs))
 (* construction of adjacent *)
 module AdjacentMap = Map.Make (Char)
 let adjacent = ref AdjacentMap . empty ;;
+
+let print_of_char_map key value = let s = string_of_char_list value in
+  print_endline (Char.escaped key ^ ": " ^ s)
 
 (* impure local function *)
 let map_find key = AdjacentMap.find key !adjacent
@@ -124,7 +126,6 @@ let rec token_builder xs len =
     | false -> let xs' = push xs (next_grapheme cur) in 
       token_builder xs' (len - 1)
 
-let glue = fun s t -> s ^ Char.escaped t
 let next_token_fixed head len = fold_left glue "" (token_builder [head] len)
 let next_token = next_token_fixed (map_random_key ())
 
@@ -164,13 +165,12 @@ let next_aequilate len =
   print_string (Char.escaped head ^ ", ") ;
   next_filtered_fixed (head) len (pred_aequilate len) ;;
 
-(*
+
 for index = 1 to 5 do
   print_endline (case_opt "_____" (next_aequilate 5))
   (* print_endline (next_aequilate_unsafe 5) *)
   (* print_endline (next_token_fixed 'a' 5) *)
 done ;;
-*)
   
 
 (*
