@@ -42,7 +42,6 @@ let glue = fun trans s t -> s ^ trans t
 let string_of_chars xs = manifold glue xs Char.escaped ""
 
 let subs s off pos = String.sub s off (pos - off + 1)
-let subs' s pos = subs s 0 pos
 let mids s = subs s 1 (String.length s - 2)
 let drops n s = subs s n (String.length s - 1)
 let (|+|) s n = s.[if n >= 0 then n else String.length s + n]
@@ -112,8 +111,8 @@ let of_type s = let case = match String.length s with
 
 let rec scan s xs = match String.length s with 0 -> xs | _ -> 
   let consume n = drops n s in 
-  let rec trundle pos = let piece = subs' s pos in
-    if piece |+| 1 == 'L' then subs' s (String.index s ';') else
+  let rec trundle pos = let piece = subs s 0 pos in
+    if piece |+| -1 == 'L' then subs s 0 (String.index s ';') else
     if is_type piece then piece else trundle (pos + 1) in
   let raw = trundle 0 in
   let len = String.length raw in 

@@ -34,11 +34,6 @@ let glue = fun s t -> s ^ Char.escaped t
 let comma = fun trans s t -> s ^ ", " ^ trans t
 let string_of_char_list xs = manifold comma xs Char.escaped ""
 
-let list_of_string s = let xs = ref [] in 
-  for index = 0 to String.length s - 1 do
-    xs := push !xs s.[index]
-  done; !xs
-
 let unique xs = let xs' = ref [] in
   for index = 0 to length xs - 1 do
     let x = nth xs index in
@@ -133,7 +128,7 @@ let next_token = next_token_fixed (map_random_key ())
 (* filter predicate *)
 
 let pred_aequilate len = fun token -> String.length token == len
-let pred_degree_less n = fun token -> degree (list_of_string token) <= n
+let pred_degree_less n = fun token -> degree (explode token) <= n
 let pred_degree_good = pred_degree_less 3
 
 
