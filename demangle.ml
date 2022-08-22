@@ -109,7 +109,7 @@ let of_type s = let case = match (=?) s with
   1 -> of_primitive | _ -> of_reference in case s
 
 let rec scan s xs = match (=?) s with 0 -> xs | _ -> 
-  let consume t = scan (drops ((=?) t) s) (push xs t) in 
+  let consume t = scan (drops ((=?) t) s) (push xs (of_type t)) in 
   let rec trundle pos = let piece = subs s 0 pos in
     if piece |+| -1 == 'L' then subs s 0 (s -? ';') else
     if is_type piece then piece else trundle (pos + 1) in
@@ -124,6 +124,9 @@ else unknown
 let of_method' s = of_method s ""
 
 ;; print_endline (of_method "([[IZ[Ljava/lang/Object;)V" "test")
+
+
+
 
 
 
@@ -158,6 +161,14 @@ let gcc_mangle_encodings = StringMap . ( empty
   |> add "g" "__float128" (* __float80 *)
   |> add "z" "ellipsis" (* ... *)
 )
+
+
+(* let gcc_demangler s = if String.starts_with "_Z" s then *)
+(* else unknown *)
+
+(* ;; print_endline (string_of_bool (String.starts_with ~prefix: "_ZN" "_ZNEKv")) *)
+
+
 
 (* 
                               Compression
