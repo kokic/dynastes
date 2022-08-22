@@ -42,8 +42,10 @@ let glue = fun trans s t -> s ^ trans t
 let string_of_chars xs = manifold glue xs Char.escaped ""
 
 let subs s off pos = String.sub s off (pos - off + 1)
-let mids s = subs s 1 (String.length s - 1)
+let subs' s pos = subs s 0 pos
+let mids s = subs s 1 (String.length s - 2)
 let drops n s = subs s n (String.length s - 1)
+let (|+|) s n = s.[if n >= 0 then n else String.length s + n]
 
 let list_of_string s = let xs = ref [] in 
   for index = 0 to String.length s - 1 do
@@ -55,7 +57,6 @@ let list_of_string s = let xs = ref [] in
 
 (* demangle *)
 
-module StringMap = Map.Make (String)
 
 (* JVM - JDI Type Signatures *)
 
@@ -68,6 +69,8 @@ module StringMap = Map.Make (String)
   | ( arg-types ) ret-type    | method type           |
   +---------------------------+-----------------------+
 *)
+
+module StringMap = Map.Make (String)
 
 let jvm_mangle_encodings = StringMap . ( empty 
   |> add "Z" "boolean"
@@ -83,42 +86,51 @@ let jvm_mangle_encodings = StringMap . ( empty
 
 let unknown = "__unknown" (* unknown type *)
 
-let is_primitive c = 
-  (* ----- *) c == 'V' ||
-  c == 'B' || c == 'C' || 
-  c == 'D' || c == 'F' || 
-  c == 'I' || c == 'J' ||
-  c == 'S' || c == 'Z'
-let of_primitive s = match is_primitive s.[0] with
+let is_primitive s = StringMap.mem s jvm_mangle_encodings
+let of_primitive s = match is_primitive s with
   true -> StringMap.find s jvm_mangle_encodings | _ -> unknown
 
 let dotify s = string_of_chars (map ('/' |-> '.') (list_of_string s))
-let is_reference s = s.[0] == 'L' && s.[String.length s - 1] == ';'
-let of_reference s = match is_reference s with
-  true -> dotify (mids s) | _ -> unknown
 
+let rec is_reference s = if String.length s >= 2 then match s.[0] with
+    'L' -> s.[String.length s - 1] == ';'
+  | '[' -> let s' = drops 1 s in is_primitive s' || is_reference s'
+  | ___ -> false
+else false
+
+let rec of_reference s = if is_reference s then match s.[0] with 
+    'L' -> dotify (mids s)
+  | '[' -> let s' = drops 1 s in 
+           let d' = delta (is_reference s') in
+               d' of_reference of_primitive s' ^ "[]"
+  | ___ -> unknown
+else unknown
+
+let is_type s = is_primitive s || is_reference s
 let of_type s = let case = match String.length s with 
   1 -> of_primitive | _ -> of_reference in case s
 
 let rec scan s xs = match String.length s with 0 -> xs | _ -> 
-  let head = s.[0] in let consume n = drops n s in match head with 
-    'L' -> let pos = String.index s ';' in 
-           let aka = dotify (subs s 1 (pos - 1)) in
-           scan (consume (pos + 1)) (push xs aka)
-  | ___ -> scan (consume 1) (push xs (of_primitive (Char.escaped head)))
+  let consume n = drops n s in 
+  let rec trundle pos = let piece = subs' s pos in
+    if piece |+| 1 == 'L' then subs' s (String.index s ';') else
+    if is_type piece then piece else trundle (pos + 1) in
+  let raw = trundle 0 in
+  let len = String.length raw in 
+  let aka = of_type raw in scan (consume len) (push xs aka)
 let scan' s = scan s [] 
-(* ;; print_endline (String.concat ", " (scan' "ILjava/lang/String;J")) *)
 
-let of_method s name = match s.[0] with 
-    '(' -> let pos = String.index s ')' in
-           let ret = of_type (drops (pos + 1) s) in
-           let res = scan' (subs s 1 (pos - 1)) in
-           let cat = String.concat ", " res in
-           ret ^ " " ^ name ^ "(" ^ cat ^ ")"
-  | ___ -> unknown
+let of_method s name = if s.[0] == '(' then 
+  let pos = String.index s ')' in
+  let cat = String.concat ", " (scan' (subs s 1 (pos - 1))) in
+  of_type (drops (pos + 1) s) ^ " " ^ name ^ "(" ^ cat ^ ")"
+else unknown
 let of_method' s = of_method s ""
 
-(* ;; print_endline (of_method "(IZLjava/lang/Object;)V" "test") *)
+;; print_endline (of_method "([[IZ[Ljava/lang/Object;)V" "test")
+
+
+
 
 
 (* GCC - Itanium C++ ABI’s name mangling rules *)
