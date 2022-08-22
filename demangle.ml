@@ -41,15 +41,15 @@ let manifold f xs trans default = match xs with [] -> default
 let glue = fun trans s t -> s ^ trans t
 let string_of_chars xs = manifold glue xs Char.escaped ""
 
-let subs s off pos = String.sub s off (pos - off + 1)
-let mids s = subs s 1 (String.length s - 2)
-let drops n s = subs s n (String.length s - 1)
-let (|+|) s n = s.[if n >= 0 then n else String.length s + n]
+let (=?) s = String.length s
+let (-?) s x = String.index s x
+let (|+|) s n = s.[if n >= 0 then n else (=?) s + n]
 
-let list_of_string s = let xs = ref [] in 
-  for index = 0 to String.length s - 1 do
-    xs := push !xs s.[index]
-  done; !xs
+let subs s off pos = String.sub s off (pos - off + 1)
+let subs' s pos = subs s 0 pos 
+let mids s = subs s 1 ((=?) s - 2)
+let drops n s = subs s n ((=?) s - 1)
+let explode s = init ((=?) s) (String.get s)
 
 
 
@@ -89,10 +89,9 @@ let is_primitive s = StringMap.mem s jvm_mangle_encodings
 let of_primitive s = match is_primitive s with
   true -> StringMap.find s jvm_mangle_encodings | _ -> unknown
 
-let dotify s = string_of_chars (map ('/' |-> '.') (list_of_string s))
-
-let rec is_reference s = if String.length s >= 2 then match s.[0] with
-    'L' -> s.[String.length s - 1] == ';'
+let dotify s = string_of_chars (map ('/' |-> '.') (explode s))
+let rec is_reference s = if (=?) s >= 2 then match s.[0] with
+    'L' -> s |+| -1 == ';'
   | '[' -> let s' = drops 1 s in is_primitive s' || is_reference s'
   | ___ -> false
 else false
@@ -106,21 +105,19 @@ let rec of_reference s = if is_reference s then match s.[0] with
 else unknown
 
 let is_type s = is_primitive s || is_reference s
-let of_type s = let case = match String.length s with 
+let of_type s = let case = match (=?) s with 
   1 -> of_primitive | _ -> of_reference in case s
 
-let rec scan s xs = match String.length s with 0 -> xs | _ -> 
-  let consume n = drops n s in 
+let rec scan s xs = match (=?) s with 0 -> xs | _ -> 
+  let consume t = scan (drops ((=?) t) s) (push xs t) in 
   let rec trundle pos = let piece = subs s 0 pos in
-    if piece |+| -1 == 'L' then subs s 0 (String.index s ';') else
+    if piece |+| -1 == 'L' then subs s 0 (s -? ';') else
     if is_type piece then piece else trundle (pos + 1) in
-  let raw = trundle 0 in
-  let len = String.length raw in 
-  let aka = of_type raw in scan (consume len) (push xs aka)
+  consume (trundle 0)
 let scan' s = scan s [] 
 
 let of_method s name = if s.[0] == '(' then 
-  let pos = String.index s ')' in
+  let pos = s -? ')' in
   let cat = String.concat ", " (scan' (subs s 1 (pos - 1))) in
   of_type (drops (pos + 1) s) ^ " " ^ name ^ "(" ^ cat ^ ")"
 else unknown
