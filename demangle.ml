@@ -173,27 +173,35 @@ let (-~) a b = fun x -> a <= x && x <= b
 let gcc_is_alias s = StringMap.mem s gcc_mangle_encodings
 let gcc_of_alias s = case_opt unknown (StringMap.find_opt s gcc_mangle_encodings)
 
+let segment pred s = let n = (=?) s in 
+  let rec trundle pos = if pos >= n then (n - 1) else 
+    if pred s.[pos] then trundle (pos + 1) else pos - 1 in
+  let pos = trundle 0 in (subs' s pos, pos)
 
-let rec gcc_scan s xs = match (=?) s with 0 -> xs | _ -> 
-  let consume t = gcc_scan (drops ((=?) t) s) (push xs (gcc_of_alias t)) in 
-  let rec trundle pos = let piece = subs s 0 pos in
-    if gcc_is_alias piece then piece else trundle (pos + 1) in
-  consume (trundle 0)
-let gcc_scan' s = gcc_scan s []
+;; print_endline (fst (segment ('0' -~ '9') "4Name3foo"))
 
-(* ;; print_endline (String.concat ", " (gcc_params_scan' "iSsb")) *)
- 
 let rec gcc_name_scan s xs = match (=?) s with 0 -> xs | _ -> 
   let consume (n, t) = gcc_name_scan (drops n s) (push xs t) in 
-  let rec trundle pos = let piece = subs s 0 pos in
-    if (('0' -~ '9') (piece |+| -1)) then trundle (pos + 1) else
+  let (piece, pos) = segment ('0' -~ '9') s in
+  let offset = int_of_string piece in 
+  let name = String.sub s (pos + 1) offset in
+  consume (offset + 1, name)
+let gcc_of_name s = String.concat "::" (gcc_name_scan s [])
+(* ;; print_endline (gcc_of_name "4Name3foo6Google2GC") *)
+
+(* old impl: *)
+(* let rec trundle pos = let piece = subs' s pos in
+    if ('0' -~ '9') (piece |+| -1) then trundle (pos + 1) else
     let n = int_of_string (subs' piece (-2)) in
-    let name = String.sub s pos n in ((=?) name + 1, name) in
+    let name = String.sub s pos n in ((=?) name + 1, name) in *)
+
+let rec gcc_scan s xs = match (=?) s with 0 -> xs | _ -> 
+  let consume (n, t) = gcc_scan (drops n s) (push xs (gcc_of_alias t)) in 
+  let rec trundle pos = let piece = subs s 0 pos in
+    if gcc_is_alias piece then ((=?) piece, piece) else trundle (pos + 1) in
   consume (trundle 0)
-let gcc_name_scan' s = gcc_name_scan s []
-
-;; print_endline (String.concat ", " (gcc_name_scan' "5Class3foo"))
-
+let gcc_scan' s = gcc_scan s []
+;; print_endline (String.concat ", " (gcc_scan' "iSsb"))
 
 (* _ZN4Name3fooEiSsN5Class3SubE *)
 (* Name::foo(int, std::string, Class::Sub) *)
