@@ -38,21 +38,23 @@ let lizard xs = take (length xs - 1) xs
 let manifold f xs trans default = match xs with [] -> default
   | head :: tails -> fold_left (f trans) (trans head) tails
 
+
+let case_opt default = function None -> default | Some x -> x
+let case x = case_opt (failwith "case none") x  
+
 let glue = fun trans s t -> s ^ trans t
 let string_of_chars xs = manifold glue xs Char.escaped ""
 
 let (=?) s = String.length s
 let (-?) s x = String.index s x
-let (|+|) s n = s.[if n >= 0 then n else (=?) s + n]
+let (|%|) s n = if n >= 0 then n else (=?) s + n
+let (|+|) s n = s.[s |%| n]
 
-let subs s off pos = String.sub s off (pos - off + 1)
+let subs s off pos = String.sub s off ((s |%| pos) - off + 1)
 let subs' s pos = subs s 0 pos 
 let mids s = subs s 1 ((=?) s - 2)
 let drops n s = subs s n ((=?) s - 1)
 let explode s = init ((=?) s) (String.get s)
-
-
-
 
 (* demangle *)
 
@@ -123,7 +125,7 @@ let of_method s name = if s.[0] == '(' then
 else unknown
 let of_method' s = of_method s ""
 
-;; print_endline (of_method "([[IZ[Ljava/lang/Object;)V" "test")
+(* ;; print_endline (of_method "([[IZ[Ljava/lang/Object;)V" "test") *)
 
 
 
@@ -165,6 +167,43 @@ let gcc_mangle_encodings = StringMap . ( empty
 
 (* let gcc_demangler s = if String.starts_with "_Z" s then *)
 (* else unknown *)
+
+let (-~) a b = fun x -> a <= x && x <= b
+
+let gcc_is_alias s = StringMap.mem s gcc_mangle_encodings
+let gcc_of_alias s = case_opt unknown (StringMap.find_opt s gcc_mangle_encodings)
+
+
+let rec gcc_scan s xs = match (=?) s with 0 -> xs | _ -> 
+  let consume t = gcc_scan (drops ((=?) t) s) (push xs (gcc_of_alias t)) in 
+  let rec trundle pos = let piece = subs s 0 pos in
+    if gcc_is_alias piece then piece else trundle (pos + 1) in
+  consume (trundle 0)
+let gcc_scan' s = gcc_scan s []
+
+(* ;; print_endline (String.concat ", " (gcc_params_scan' "iSsb")) *)
+ 
+let rec gcc_name_scan s xs = match (=?) s with 0 -> xs | _ -> 
+  let consume (n, t) = gcc_name_scan (drops n s) (push xs t) in 
+  let rec trundle pos = let piece = subs s 0 pos in
+    if (('0' -~ '9') (piece |+| -1)) then trundle (pos + 1) else
+    let n = int_of_string (subs' piece (-2)) in
+    let name = String.sub s pos n in ((=?) name + 1, name) in
+  consume (trundle 0)
+let gcc_name_scan' s = gcc_name_scan s []
+
+;; print_endline (String.concat ", " (gcc_name_scan' "5Class3foo"))
+
+
+(* _ZN4Name3fooEiSsN5Class3SubE *)
+(* Name::foo(int, std::string, Class::Sub) *)
+
+
+let rec gcc_demangle xs = match xs with
+    '_' :: 'Z' :: tails -> gcc_demangle tails
+  | 'N' :: tails -> "starts"
+  | _ -> unknown
+
 
 (* ;; print_endline (string_of_bool (String.starts_with ~prefix: "_ZN" "_ZNEKv")) *)
 
