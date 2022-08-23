@@ -173,16 +173,20 @@ let (-~) a b = fun x -> a <= x && x <= b
 let gcc_is_alias s = StringMap.mem s gcc_mangle_encodings
 let gcc_of_alias s = case_opt unknown (StringMap.find_opt s gcc_mangle_encodings)
 
-let segment pred s = let n = (=?) s in 
+let locals pred s = let n = (=?) s in 
   let rec trundle pos = if pos >= n then (n - 1) else 
     if pred s.[pos] then trundle (pos + 1) else pos - 1 in
   let pos = trundle 0 in (subs' s pos, pos)
 
-;; print_endline (fst (segment ('0' -~ '9') "4Name3foo"))
+let globals pred s = let n = (=?) s in 
+  let rec trundle pos = if pos >= n then ("", (n - 1)) else 
+    let piece = subs' s pos in
+    if pred piece then (piece, pos) else trundle (pos + 1) in
+  trundle 0
 
 let rec gcc_name_scan s xs = match (=?) s with 0 -> xs | _ -> 
   let consume (n, t) = gcc_name_scan (drops n s) (push xs t) in 
-  let (piece, pos) = segment ('0' -~ '9') s in
+  let (piece, pos) = locals ('0' -~ '9') s in
   let offset = int_of_string piece in 
   let name = String.sub s (pos + 1) offset in
   consume (offset + 1, name)
@@ -197,9 +201,10 @@ let gcc_of_name s = String.concat "::" (gcc_name_scan s [])
 
 let rec gcc_scan s xs = match (=?) s with 0 -> xs | _ -> 
   let consume (n, t) = gcc_scan (drops n s) (push xs (gcc_of_alias t)) in 
-  let rec trundle pos = let piece = subs s 0 pos in
-    if gcc_is_alias piece then ((=?) piece, piece) else trundle (pos + 1) in
-  consume (trundle 0)
+  let (piece, pos) = globals (gcc_is_alias) s in
+  (* let rec trundle pos = let piece = subs s 0 pos in
+    if gcc_is_alias piece then ((=?) piece, piece) else trundle (pos + 1) in *)
+  consume (pos + 1, piece)
 let gcc_scan' s = gcc_scan s []
 ;; print_endline (String.concat ", " (gcc_scan' "iSsb"))
 
