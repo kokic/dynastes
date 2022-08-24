@@ -54,7 +54,7 @@ let (++) xs s = String.concat s xs
 let subs s off pos = String.sub s off ((s |%| pos) - off + 1)
 let subs' s pos = subs s 0 pos 
 let mids s = subs s 1 ((=?) s - 2)
-let drops n s = subs s n ((=?) s - 1)
+let drops n s = if n >= (=?) s then "" else subs s n ((=?) s - 1)
 let (>>) s n = drops n s
 let explode s = init ((=?) s) (String.get s)
 
@@ -123,7 +123,7 @@ let scan' s = scan s []
 let of_method s name = if s.[0] == '(' then 
   let pos = s -? ')' in
   let cat = String.concat ", " (scan' (subs s 1 (pos - 1))) in
-  of_type (drops (pos + 1) s) ^ " " ^ name ^ "(" ^ cat ^ ")"
+  of_type (s >> pos + 1) ^ " " ^ name ^ "(" ^ cat ^ ")"
 else unknown
 let of_method' s = of_method s ""
 
@@ -189,39 +189,20 @@ let gcc_mangle_encodings = StringMap . ( empty
   |> add "z" "ellipsis" (* ... *)
 )
 
-
-(* let gcc_demangler s = if String.starts_with "_Z" s then *)
-(* else unknown *)
-
 let gcc_is_alias s = StringMap.mem s gcc_mangle_encodings
 let gcc_of_alias s = case_opt unknown (StringMap.find_opt s gcc_mangle_encodings)
 
-(*
-let rec gcc_alias_breaker s xs = match (=?) s with 0 -> xs | _ -> 
-  let consume (n, t) = gcc_alias_breaker (drops n s) (push xs (gcc_of_alias t)) in 
-  let (piece, pos) = globals (gcc_is_alias) s in
-  consume (pos + 1, piece)
-let gcc_alias_scan' s = gcc_alias_breaker s [] 
-(* ;; print_endline (String.concat ", " (gcc_alias_scan' "iSsb")) *)
-*)
-
-
-let rec gcc_breaker xs n s = 
+let rec gcc_breaker xs n s =  
   let piece, pos = locals ('0' -~ '9') s in  
   if pos < 0 then (xs, n) else 
-    let anchor = pos + int_of_string piece in
-    let xs' = push xs (subs s 1 anchor) in
-    let s' = drops (anchor + 1) s in
+    let anchor = pos + int_of_string piece in    
+    let xs' = push xs (subs s (pos + 1) anchor) in
+    let s' = s >> anchor + 1 in
     gcc_breaker xs' (n + anchor + (=?) piece) s' 
 let gcc_breaker' = gcc_breaker [] 0
 
-let gcc_cut s = let xs, n = gcc_breaker' s in xs ++ "::", drops n s
-let gcc_name_cut s = gcc_cut (if s.[0] == 'N' then  drops 1 s else s)
-
-(*
-let pair = gcc_cut "4Name3fooEiSs"
-;; print_endline (fst pair ^ "\n" ^ snd pair)
-*)
+let gcc_cut s = let xs, n = gcc_breaker' s in xs ++ "::", s >> n
+let gcc_name_cut s = gcc_cut (if s.[0] == 'N' then s >> 1 else s)
 
 type stat = Normal | Pointer | Reference | Const
 
@@ -234,18 +215,19 @@ let gcc_status s status =
   s ^ map single (rev status) ++ ""
 
 let rec gcc_of_params xs s status = if (=?) s <= 0 then xs else
+  let infl name = gcc_status name status in
+  let record_cut name surplus = gcc_of_params (push xs (infl name)) surplus [] in
   let record_status stat = gcc_of_params xs (s >> 1) (push status stat) in
   let head = s.[0] in match head with
-  | 'N' -> let name, surplus = gcc_cut (s >> 1) in 
-           gcc_of_params (push xs (gcc_status name status)) surplus []
-  | 'E' -> gcc_of_params xs (s >> 1) []
-  | 'P' -> record_status Pointer
-  | 'R' -> record_status Reference
-  | 'K' -> record_status Const
-  | ___ -> let (piece, pos) = globals gcc_is_alias s in
-           if pos < 0 then xs else 
-           let name = gcc_of_alias piece in
-           gcc_of_params (push xs (gcc_status name status)) (s >> pos + 1) []
+    | 'N' -> let name, surplus = gcc_cut (s >> 1) in record_cut name surplus
+    | 'E' -> gcc_of_params xs (s >> 1) []
+    | 'P' -> record_status Pointer
+    | 'R' -> record_status Reference
+    | 'K' -> record_status Const
+    | ___ -> let (piece, pos) = globals gcc_is_alias s in
+             if pos < 0 then let name, surplus = gcc_cut s in
+             if (=?) name <= 0 then xs else record_cut name surplus else 
+             let name = gcc_of_alias piece in record_cut name (s >> pos + 1)
 let gcc_of_params' s = gcc_of_params [] s []
 
 let gcc_demangle s = if String.starts_with ~prefix: "_Z" s then
@@ -253,16 +235,12 @@ let gcc_demangle s = if String.starts_with ~prefix: "_Z" s then
   let name, surplus = gcc_name_cut (s' >> 2) in
   let xs = gcc_of_params' surplus in
   name ^ "(" ^ xs ++ ", " ^ ")" 
-else unknown
+else s
 
-;; print_endline (gcc_demangle "_ZN9wikipedia7article8print_toERKSo")
-
-(* Name::foo(int, std::string, Class::Sub) *)
-
-(* ;; print_endline (string_of_bool (String.starts_with ~prefix: "_ZN" "_ZNEKv")) *)
-
-
-
+;; print_endline (gcc_demangle "_ZN6Player17setPlayerGameTypeE8GameType")
+;; print_endline (gcc_demangle "_ZN6Player14setCarriedItemERK12ItemInstance")
+;; print_endline (gcc_demangle "_ZN6Player7setNameERKSs")
+;; print_endline (gcc_demangle "_ZN6Player8setArmorE9ArmorSlotRK12ItemInstance")
 
 
 
@@ -281,6 +259,12 @@ else unknown
 
 
 (*
+let pair = gcc_cut "4Name3fooEiSs"
+;; print_endline (fst pair ^ "\n" ^ snd pair)
+*)
+
+
+(*
 let rec gcc_name_scan s xs = match (=?) s with 0 -> xs | _ -> 
   let consume (n, t) = gcc_name_scan (drops n s) (push xs t) in 
   let (piece, pos) = locals ('0' -~ '9') s in
@@ -289,6 +273,21 @@ let rec gcc_name_scan s xs = match (=?) s with 0 -> xs | _ ->
   consume (offset + 1, name)
 let gcc_of_name s = String.concat "::" (gcc_name_scan s [])
 ;; print_endline (gcc_of_name "4Name3foo6Google2GC") *)
+
+
+(*
+let rec gcc_alias_breaker s xs = match (=?) s with 0 -> xs | _ -> 
+  let consume (n, t) = gcc_alias_breaker (drops n s) (push xs (gcc_of_alias t)) in 
+  let (piece, pos) = globals (gcc_is_alias) s in
+  consume (pos + 1, piece)
+let gcc_alias_scan' s = gcc_alias_breaker s [] 
+(* ;; print_endline (String.concat ", " (gcc_alias_scan' "iSsb")) *)
+*)
+
+
+
+
+
 
 
 
