@@ -173,37 +173,42 @@ let (-~) a b = fun x -> a <= x && x <= b
 let gcc_is_alias s = StringMap.mem s gcc_mangle_encodings
 let gcc_of_alias s = case_opt unknown (StringMap.find_opt s gcc_mangle_encodings)
 
-let locals pred s = let n = (=?) s in 
+let locals_opt pred s = let n = (=?) s in 
   let rec trundle pos = if pos >= n then (n - 1) else 
     if pred s.[pos] then trundle (pos + 1) else pos - 1 in
   let pos = trundle 0 in 
-  let piece = if pos >= 0 then subs' s pos else "" in 
-  (piece, pos)
-  
-let globals pred s = let n = (=?) s in 
-  let rec trundle pos = if pos >= n then ("", -1) else 
+  if pos >= 0 then Some (subs' s pos, pos) else None
+let locals pred s = case_opt ("", -1) (locals_opt pred s)
+
+let globals_opt pred s = let n = (=?) s in 
+  let rec trundle pos = if pos >= n then None else 
     let piece = subs' s pos in
-    print_endline (piece) ;
-    if pred piece then (piece, pos) else trundle (pos + 1) in 
+    if pred piece then Some (piece, pos) 
+    else trundle (pos + 1) in 
   trundle 0
+let globals pred s = case_opt ("", -1) (globals_opt pred s)
 
 (* ;; print_endline (string_of_int (snd (locals ('0' -~ '9') "12E"))) *)
 (* ;; print_endline (string_of_int (snd (globals (fun x -> String.equal x "aka") "akaE"))) *)
 
-let gcc_is_name s = let (piece, pos) = locals ('0' -~ '9') s in
-  if pos < 0 then false else
-  (=?) piece + int_of_string piece == (=?) s
-
-(* ;; print_endline (string_of_bool (gcc_is_name  "3fooE")) *)
-
+(*
 let rec chain s = 
   let (piece, pos) = globals gcc_is_name s in
-  print_endline ("what: " ^ s ^ string_of_int pos) ;
+  print_endline ("what: " ^ s ^ ", " ^ string_of_int pos) ;
   if pos >= 0 then piece ^ chain (drops ((=?) piece) s) 
   else piece
+*)
 
-(* ;; print_endline (chain "4Name3foo") *)
+let rec breaker xs n s = 
+  let piece, pos = locals ('0' -~ '9') s in  
+  if pos < 0 then (xs, n) else 
+  let anchor = pos + int_of_string piece in
+  breaker (push xs (subs s 1 anchor)) (n + anchor + (=?) piece) (drops (anchor + 1) s) 
+let breaker' s = breaker [] 0 s
 
+let pair = breaker' "4Name3fooE"
+;; print_endline (String.concat "::" (fst pair))
+;; print_endline (string_of_int (snd pair))
 
 
 
