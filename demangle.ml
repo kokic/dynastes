@@ -49,11 +49,13 @@ let (=?) s = String.length s
 let (-?) s x = String.index s x
 let (|%|) s n = if n >= 0 then n else (=?) s + n
 let (|+|) s n = s.[s |%| n]
+let (++) xs s = String.concat s xs
 
 let subs s off pos = String.sub s off ((s |%| pos) - off + 1)
 let subs' s pos = subs s 0 pos 
 let mids s = subs s 1 ((=?) s - 2)
 let drops n s = subs s n ((=?) s - 1)
+let (>>) s n = drops n s
 let explode s = init ((=?) s) (String.get s)
 
 (* demangle *)
@@ -132,6 +134,29 @@ let of_method' s = of_method s ""
 
 
 
+let (-~) a b = fun x -> a <= x && x <= b
+
+let locals_opt pred s = let n = (=?) s in 
+  let rec trundle pos = if pos >= n then (n - 1) else 
+    if pred s.[pos] then trundle (pos + 1) else pos - 1 in
+  let pos = trundle 0 in 
+  if pos >= 0 then Some (subs' s pos, pos) else None
+let locals pred s = case_opt ("", -1) (locals_opt pred s)
+
+let globals_opt pred s = let n = (=?) s in 
+  let rec trundle pos = if pos >= n then None else 
+    let piece = subs' s pos in
+    if pred piece then Some (piece, pos) 
+    else trundle (pos + 1) in 
+  trundle 0
+let globals pred s = case_opt ("", -1) (globals_opt pred s)
+
+
+(* ;; print_endline (string_of_int (snd (locals ('0' -~ '9') "12E"))) *)
+(* ;; print_endline (string_of_int (snd (globals (fun x -> String.equal x "aka") "akaE"))) *)
+
+
+
 
 
 (* GCC - Itanium C++ ABI’s name mangling rules *)
@@ -167,32 +192,6 @@ let gcc_mangle_encodings = StringMap . ( empty
 
 (* let gcc_demangler s = if String.starts_with "_Z" s then *)
 (* else unknown *)
-  
-let (-~) a b = fun x -> a <= x && x <= b
-
-let locals_opt pred s = let n = (=?) s in 
-  let rec trundle pos = if pos >= n then (n - 1) else 
-    if pred s.[pos] then trundle (pos + 1) else pos - 1 in
-  let pos = trundle 0 in 
-  if pos >= 0 then Some (subs' s pos, pos) else None
-let locals pred s = case_opt ("", -1) (locals_opt pred s)
-
-let globals_opt pred s = let n = (=?) s in 
-  let rec trundle pos = if pos >= n then None else 
-    let piece = subs' s pos in
-    if pred piece then Some (piece, pos) 
-    else trundle (pos + 1) in 
-  trundle 0
-let globals pred s = case_opt ("", -1) (globals_opt pred s)
-
-
-(* ;; print_endline (string_of_int (snd (locals ('0' -~ '9') "12E"))) *)
-(* ;; print_endline (string_of_int (snd (globals (fun x -> String.equal x "aka") "akaE"))) *)
-
-
-
-
-
 
 let gcc_is_alias s = StringMap.mem s gcc_mangle_encodings
 let gcc_of_alias s = case_opt unknown (StringMap.find_opt s gcc_mangle_encodings)
@@ -210,30 +209,53 @@ let gcc_alias_scan' s = gcc_alias_breaker s []
 let rec gcc_breaker xs n s = 
   let piece, pos = locals ('0' -~ '9') s in  
   if pos < 0 then (xs, n) else 
-  let anchor = pos + int_of_string piece in
-  gcc_breaker (push xs (subs s 1 anchor)) (n + anchor + (=?) piece) (drops (anchor + 1) s) 
-let gcc_breaker' s = gcc_breaker [] 0 s
+    let anchor = pos + int_of_string piece in
+    let xs' = push xs (subs s 1 anchor) in
+    let s' = drops (anchor + 1) s in
+    gcc_breaker xs' (n + anchor + (=?) piece) s' 
+let gcc_breaker' = gcc_breaker [] 0
 
-let gcc_cut s = let xs, pos = gcc_breaker' s in
-  String.concat "::" xs, drops pos s
-
-let pair = gcc_cut "4Name3fooEiSs"
-;; print_endline (fst pair)
-;; print_endline (snd pair)
+let gcc_cut s = let xs, n = gcc_breaker' s in xs ++ "::", drops n s
+let gcc_name_cut s = gcc_cut (if s.[0] == 'N' then  drops 1 s else s)
 
 (*
-let rec gcc_demangle s = if String.starts_with ~prefix: "_Z" s then
-  let mangled = drops 2 s in let head = mangled.[0] in
-  if head == 'N' then 
-    let 
-    breaker'  
-  else
-  (* if ('0' -~ '9') head then  *)
-  else unknown 
+let pair = gcc_cut "4Name3fooEiSs"
+;; print_endline (fst pair ^ "\n" ^ snd pair)
+*)
+
+type stat = Normal | Pointer | Reference | Const
+
+let gcc_status s status = 
+  let single stat = match stat with
+    | Pointer -> "*" 
+    | Reference -> "&" 
+    | Const -> " const"
+    | _ -> "" in
+  s ^ map single (rev status) ++ ""
+
+let rec gcc_of_params xs s status = if (=?) s <= 0 then xs else
+  let record_status stat = gcc_of_params xs (s >> 1) (push status stat) in
+  let head = s.[0] in match head with
+  | 'N' -> let name, surplus = gcc_cut (s >> 1) in 
+           gcc_of_params (push xs (gcc_status name status)) surplus []
+  | 'E' -> gcc_of_params xs (s >> 1) []
+  | 'P' -> record_status Pointer
+  | 'R' -> record_status Reference
+  | 'K' -> record_status Const
+  | ___ -> let (piece, pos) = globals gcc_is_alias s in
+           if pos < 0 then xs else 
+           let name = gcc_of_alias piece in
+           gcc_of_params (push xs (gcc_status name status)) (s >> pos + 1) []
+let gcc_of_params' s = gcc_of_params [] s []
+
+let gcc_demangle s = if String.starts_with ~prefix: "_Z" s then
+  let s' = if s |+| -1 == 'v' then subs' s (-2) else s in 
+  let name, surplus = gcc_name_cut (s' >> 2) in
+  let xs = gcc_of_params' surplus in
+  name ^ "(" ^ xs ++ ", " ^ ")" 
 else unknown
 
-;; print_endline (gcc_demangle "_ZN4Name3fooEiSsN5Class3SubE")
-*)
+;; print_endline (gcc_demangle "_ZN9wikipedia7article8print_toERKSo")
 
 (* Name::foo(int, std::string, Class::Sub) *)
 
