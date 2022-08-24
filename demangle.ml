@@ -167,7 +167,7 @@ let gcc_mangle_encodings = StringMap . ( empty
 
 (* let gcc_demangler s = if String.starts_with "_Z" s then *)
 (* else unknown *)
-
+  
 let (-~) a b = fun x -> a <= x && x <= b
 
 let gcc_is_alias s = StringMap.mem s gcc_mangle_encodings
@@ -176,13 +176,46 @@ let gcc_of_alias s = case_opt unknown (StringMap.find_opt s gcc_mangle_encodings
 let locals pred s = let n = (=?) s in 
   let rec trundle pos = if pos >= n then (n - 1) else 
     if pred s.[pos] then trundle (pos + 1) else pos - 1 in
-  let pos = trundle 0 in (subs' s pos, pos)
-
+  let pos = trundle 0 in 
+  let piece = if pos >= 0 then subs' s pos else "" in 
+  (piece, pos)
+  
 let globals pred s = let n = (=?) s in 
-  let rec trundle pos = if pos >= n then ("", (n - 1)) else 
+  let rec trundle pos = if pos >= n then ("", -1) else 
     let piece = subs' s pos in
-    if pred piece then (piece, pos) else trundle (pos + 1) in
+    print_endline (piece) ;
+    if pred piece then (piece, pos) else trundle (pos + 1) in 
   trundle 0
+
+(* ;; print_endline (string_of_int (snd (locals ('0' -~ '9') "12E"))) *)
+(* ;; print_endline (string_of_int (snd (globals (fun x -> String.equal x "aka") "akaE"))) *)
+
+let gcc_is_name s = let (piece, pos) = locals ('0' -~ '9') s in
+  if pos < 0 then false else
+  (=?) piece + int_of_string piece == (=?) s
+
+(* ;; print_endline (string_of_bool (gcc_is_name  "3fooE")) *)
+
+let rec chain s = 
+  let (piece, pos) = globals gcc_is_name s in
+  print_endline ("what: " ^ s ^ string_of_int pos) ;
+  if pos >= 0 then piece ^ chain (drops ((=?) piece) s) 
+  else piece
+
+(* ;; print_endline (chain "4Name3foo") *)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 let rec gcc_name_scan s xs = match (=?) s with 0 -> xs | _ -> 
   let consume (n, t) = gcc_name_scan (drops n s) (push xs t) in 
@@ -193,29 +226,24 @@ let rec gcc_name_scan s xs = match (=?) s with 0 -> xs | _ ->
 let gcc_of_name s = String.concat "::" (gcc_name_scan s [])
 (* ;; print_endline (gcc_of_name "4Name3foo6Google2GC") *)
 
-(* old impl: *)
-(* let rec trundle pos = let piece = subs' s pos in
-    if ('0' -~ '9') (piece |+| -1) then trundle (pos + 1) else
-    let n = int_of_string (subs' piece (-2)) in
-    let name = String.sub s pos n in ((=?) name + 1, name) in *)
-
-let rec gcc_scan s xs = match (=?) s with 0 -> xs | _ -> 
-  let consume (n, t) = gcc_scan (drops n s) (push xs (gcc_of_alias t)) in 
+let rec gcc_alias_scan s xs = match (=?) s with 0 -> xs | _ -> 
+  let consume (n, t) = gcc_alias_scan (drops n s) (push xs (gcc_of_alias t)) in 
   let (piece, pos) = globals (gcc_is_alias) s in
-  (* let rec trundle pos = let piece = subs s 0 pos in
-    if gcc_is_alias piece then ((=?) piece, piece) else trundle (pos + 1) in *)
   consume (pos + 1, piece)
-let gcc_scan' s = gcc_scan s []
-;; print_endline (String.concat ", " (gcc_scan' "iSsb"))
+let gcc_alias_scan' s = gcc_alias_scan s []
+(* ;; print_endline (String.concat ", " (gcc_alias_scan' "iSsb")) *)
+
 
 (* _ZN4Name3fooEiSsN5Class3SubE *)
 (* Name::foo(int, std::string, Class::Sub) *)
 
 
+
+(* 
 let rec gcc_demangle xs = match xs with
     '_' :: 'Z' :: tails -> gcc_demangle tails
-  | 'N' :: tails -> "starts"
-  | _ -> unknown
+  | 'N' :: tails -> 
+  | _ -> unknown *)
 
 
 (* ;; print_endline (string_of_bool (String.starts_with ~prefix: "_ZN" "_ZNEKv")) *)
