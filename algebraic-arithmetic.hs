@@ -1,6 +1,7 @@
 
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
 import Data.Ratio
 import Data.List
@@ -16,7 +17,7 @@ data OneVariableMonomial = OneVariableMonomial {
 } deriving (Eq)
 
 type One = OneVariableMonomial
-type Monomial = [OneVariableMonomial]
+type Monomial = [One]
 type Polynomial = [Monomial]
 
 data Poly = Poly11 { poly11 :: One }
@@ -72,8 +73,6 @@ concatByPlus f = foldl' (\ s t -> s ++ "+" ++ f t) ""
 
 concatByPlusRec :: FnOne String -> FnUpTriplet String
 concatByPlusRec for11 = polyRec for11 concatByPlus concatByPlus
-
-
 
 
 sortMonomial :: IdMonomial
@@ -137,11 +136,11 @@ instance Prettify One where
 
 
 instance Prettify Poly where
-  prettify = polyBranch for11 for1N forNN 
+  prettify = polyBranch for11 for1N forNN
     where (for11, for1N, forNN) = concatByPlusRec prettify
 
-  toTex = polyBranch for11 for1N forNN 
-    where (for11, for1N, forNN) = concatByPlusRec toTex  
+  toTex = polyBranch for11 for1N forNN
+    where (for11, for1N, forNN) = concatByPlusRec toTex
 
 oneMonomial :: String -> Rational -> Rational -> One
 oneMonomial = OneVariableMonomial
@@ -153,19 +152,37 @@ oneMonomialC coefficient = oneMonomial "" coefficient 0
 inject f = Poly11 . f . polyToOne
 
 
+additionPoly :: Poly -> Poly -> Poly
+additionPoly (Poly11 x) (Poly11 y) | isoeq = ins
+  where (a, b) = (coefficient x, coefficient y)
+        (u, v) = (variable x, variable y)
+        isoeq = u == v && power x == power y
+        ins = Poly11 (oneMonomial (variable x) (a + b) (power x))
+
+additionPoly (Poly11 x) (Poly11 y)
+  | u == v = Poly1N [x, y]
+  | otherwise = PolyNN [[x], [y]]
+  where (u, v) = (variable x, variable y)
+
+
+coeffMorphPoly :: (Rational -> Rational) -> Poly
+coeffMorphPoly f = inject morph x
+  where value = f . coefficient
+        morpf = \ one -> oneMonomial (variable one) (value one)
+        morph = \ one -> morpf one (power one)
 
 instance Num Poly where
-  (+) x y = x
+  (+) = additionPoly
+    -- case (x, y) of (Poly11 x, Poly11 y) -> 
     -- Poly11 (oneMonomial (variable (ovm x)) (coefficient x - coefficient y) (power x))
 
   (-) x y = x
   -- (-) x y | eqPowerF x y = oneMonomial (variable x) (coefficient x - coefficient y) (power x)
   -- (*) x y | eqPowerF x y = oneMonomial (variable x) (coefficient x * coefficient y) (power x + power y)
   (*) x y = x
-  abs x = inject (\ one -> oneMonomial (variable one) (val one) (power one)) x 
-    where val = abs . coefficient
-    
-  -- oneMonomial (variable x) (abs (coefficient x)) (power x)
+
+  abs x = coeffMorphPoly abs
+  negate x = coeffMorphPoly negate
   signum x = inject (oneMonomialC . signum . coefficient) x
   fromInteger x = (Poly11 . oneMonomialC . fromIntegral) x
 
@@ -177,7 +194,6 @@ x = Poly11 (oneMonomialX (7 / (-3)) 5)
 y = Poly11 (oneMonomialX 2 5)
 
 main = putStrLn $ prettify z ++ "\n" ++
-  toTex z ++ "\n" ++
-  prettify (signum z) ++ "\n" ++
-  prettify z
+  -- toTex z ++ "\n" ++
+  prettify (abs z) ++ "\n"
   where z = x + y
