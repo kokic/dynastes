@@ -20,6 +20,13 @@ type One = OneVariableMonomial
 type Monomial = [One]
 type Polynomial = [Monomial]
 
+varOne :: OneVariableMonomial -> String
+varOne = variable
+varMon :: Monomial -> String
+varMon = varOne . head
+varPol :: Polynomial -> String
+varPol = varMon . head
+
 data Poly = Poly11 { poly11 :: One }
           | Poly1N { poly1N :: Monomial }
           | PolyNN { polyNN :: Polynomial }
@@ -68,18 +75,19 @@ polyRec for11 bridge1N bridgeNN = (for11, for1N, forNN)
   where for1N = bridge1N for11
         forNN = bridgeNN for1N
 
-concatByPlus :: Foldable t1 => (t2 -> String) -> t1 t2 -> String
-concatByPlus f = foldl' (\ s t -> s ++ "+" ++ f t) ""
+manifold :: ((a -> b) -> b -> a -> b) -> (a -> b) -> [a] -> b
+manifold f trans xs = foldl' (f trans) (trans (head xs)) (tail xs)
 
-concatByPlusRec :: FnOne String -> FnUpTriplet String
-concatByPlusRec for11 = polyRec for11 concatByPlus concatByPlus
+concatByPlus, concatByTimes :: (a -> String) -> [a] -> String
+concatByPlus = manifold (\ trans s t -> s ++ "+" ++ trans t)
+concatByTimes = manifold (\ trans s t -> s ++ "*" ++ trans t)
 
+concatByRec :: FnOne String -> FnUpTriplet String
+concatByRec for11 = polyRec for11 concatByTimes concatByPlus
 
 sortMonomial :: IdMonomial
 sortMonomial = sortBy (\ x y -> compare (power x) (power y))
-
 sortPolynomial = sortBy (\ x y -> compare (varpoly x) (varpoly y))
-
 sortpoly = polyBranch Poly11 (Poly1N . sortMonomial)
 
 
@@ -137,10 +145,10 @@ instance Prettify One where
 
 instance Prettify Poly where
   prettify = polyBranch for11 for1N forNN
-    where (for11, for1N, forNN) = concatByPlusRec prettify
+    where (for11, for1N, forNN) = concatByRec prettify
 
   toTex = polyBranch for11 for1N forNN
-    where (for11, for1N, forNN) = concatByPlusRec toTex
+    where (for11, for1N, forNN) = concatByRec toTex
 
 oneMonomial :: String -> Rational -> Rational -> One
 oneMonomial = OneVariableMonomial
@@ -149,20 +157,28 @@ oneMonomialX = oneMonomial "x"
 oneMonomialC :: Rational -> One
 oneMonomialC coefficient = oneMonomial "" coefficient 0
 
+inject :: (One -> One) -> Poly -> Poly
 inject f = Poly11 . f . polyToOne
 
 
 additionPoly :: Poly -> Poly -> Poly
+-- aX^n + bX^n = (a+b)X^n
 additionPoly (Poly11 x) (Poly11 y) | isoeq = ins
   where (a, b) = (coefficient x, coefficient y)
         (u, v) = (variable x, variable y)
         isoeq = u == v && power x == power y
         ins = Poly11 (oneMonomial (variable x) (a + b) (power x))
 
-additionPoly (Poly11 x) (Poly11 y)
-  | u == v = Poly1N [x, y]
-  | otherwise = PolyNN [[x], [y]]
-  where (u, v) = (variable x, variable y)
+-- Poly1N: aX^n + bX^m, PolyNN: aX^n + bY^n 
+additionPoly (Poly11 x) (Poly11 y) = PolyNN [[x], [y]]
+
+additionPoly (Poly1N xs) (Poly11 y)
+  | u == v = Poly1N xs
+  | otherwise = PolyNN [xs, [y]]
+  where (u, v) = (varMon xs,  varOne y)
+        maybe = find (\ x -> power x == power y) xs
+
+
 
 
 coeffMorphPoly :: (Rational -> Rational) -> Poly
@@ -186,8 +202,7 @@ instance Num Poly where
   signum x = inject (oneMonomialC . signum . coefficient) x
   fromInteger x = (Poly11 . oneMonomialC . fromIntegral) x
 
--- instance Num Monomial where
-  -- (+) x y | eqVar x y = 
+
 
 
 x = Poly11 (oneMonomialX (7 / (-3)) 5)
@@ -195,5 +210,12 @@ y = Poly11 (oneMonomialX 2 5)
 
 main = putStrLn $ prettify z ++ "\n" ++
   -- toTex z ++ "\n" ++
-  prettify (abs z) ++ "\n"
+  prettify (abs z) ++ "\n" ++
+  prettify (Poly1N [poly11 x, poly11 y])
   where z = x + y
+
+
+
+
+
+
