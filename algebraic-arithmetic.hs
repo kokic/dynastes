@@ -1,7 +1,7 @@
 
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+-- {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
 import Data.Ratio
 import Data.List
@@ -9,6 +9,13 @@ import Data.List
 delta :: Bool -> a -> a -> a
 delta True  x _ = x
 delta False _ y = y
+
+
+
+
+
+
+{--
 
 data OneVariableMonomial = OneVariableMonomial {
   variable :: String,
@@ -162,24 +169,26 @@ inject f = Poly11 . f . polyToOne
 
 
 additionPoly :: Poly -> Poly -> Poly
+
 -- aX^n + bX^n = (a+b)X^n
-additionPoly (Poly11 x) (Poly11 y) | isoeq = ins
+additionPoly (Poly11 x) (Poly11 y) | iso = ins
   where (a, b) = (coefficient x, coefficient y)
         (u, v) = (variable x, variable y)
-        isoeq = u == v && power x == power y
+        iso = u == v && power x == power y
         ins = Poly11 (oneMonomial (variable x) (a + b) (power x))
 
 -- Poly1N: aX^n + bX^m, PolyNN: aX^n + bY^n 
 additionPoly (Poly11 x) (Poly11 y) = PolyNN [[x], [y]]
 
-additionPoly (Poly1N xs) (Poly11 y)
-  | u == v = Poly1N xs
-  | otherwise = PolyNN [xs, [y]]
-  where (u, v) = (varMon xs,  varOne y)
-        maybe = find (\ x -> power x == power y) xs
+additionPoly (Poly1N xs) (Poly11 y) = PolyNN [xs, [y]]
+-- | u == v = Poly1N xs
+  -- | otherwise = PolyNN [xs, [y]]
+  -- where (u, v) = (varMon xs,  varOne y)
+        -- maybe = find (\ x -> power x == power y) xs 
 
 
-
+additionPoly (PolyNN xs) (Poly11 y) = PolyNN ([y] : xs)
+additionPoly (Poly11 x) (PolyNN xs) = additionPoly (PolyNN xs) (Poly11 x)
 
 coeffMorphPoly :: (Rational -> Rational) -> Poly
 coeffMorphPoly f = inject morph x
@@ -214,7 +223,7 @@ main = putStrLn $ prettify z ++ "\n" ++
   prettify (Poly1N [poly11 x, poly11 y])
   where z = x + y
 
-
+--}
 
 
 
