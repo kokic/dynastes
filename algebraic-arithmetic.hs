@@ -1,6 +1,6 @@
 
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleInstances #-}
+-- {-# LANGUAGE TypeSynonymInstances #-}
+-- {-# LANGUAGE FlexibleInstances #-}
 -- {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
 import Data.Ratio
