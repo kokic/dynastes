@@ -7,12 +7,14 @@
 -- `<stdout>: hPutChar: invalid argument (invalid character)`
 -- solution: https://gitlab.haskell.org/ghc/ghc/-/issues/8118
 
-import GHC.IO.Encoding -- setLocaleEncoding utf8
+import GHC.IO.Encoding ( utf8, setLocaleEncoding )
+-- setLocaleEncoding utf8
 
 -- #ifndef linux_HOST_OS
 #ifdef mingw32_HOST_OS 
 -- mingw32_BUILD_OS
-import System.Win32.Console -- setConsoleOutputCP 65001
+import System.Win32.Console ( setConsoleOutputCP ) 
+-- setConsoleOutputCP 65001
 #endif
 
 import Data.Char
@@ -38,7 +40,7 @@ instance Trans Char where
   trans x _ = x
   
 instance Trans String where 
-  trans (x:[]) xs = [trans x xs] -- trans [] _ = []
+  trans [x] xs = [trans x xs] -- trans [] _ = []
   trans (e:es) xs = trans e xs : trans es xs
 
 --- --- --- --- --- --- --- --- --- --- --- --- ---
