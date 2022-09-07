@@ -101,27 +101,32 @@ indexs xs = [0 .. length xs - 1]
 border :: [a] -> [a] -> [[a]] -> [[a]]
 border hs ls xs = hs : [ls !! i : xs !! i | i <- indexs ls]
 
-table :: (Num t1, Num t2, Enum t1, Enum t2) => t2 -> t1 -> (t2 -> t1 -> a) -> [[a]]
+table :: Int -> Int -> (Int -> Int -> a) -> [[a]]
 table m n f = [[f i j | i <- [1 .. m]]
                       | j <- [1 .. n]]
 
+ordℓXn :: [[a]] -> Int -> Int
+ordℓXn ℓX n = foldl' (\ s t -> s + delta (length t == n) 1 0) 0 ℓX
 
+texℓXOrdTable :: (Ord a) => [a] -> Int -> Int -> String
+texℓXOrdTable g n card = drawTexTable (border hs ls xs)
+  where ts = "\\mathcal{O}_{\\ell\\le" ++ show n ++ "}(\\Z/" ++ show (length g) ++"\\Z)"
+        hs = ts : ["\\ell=" ++ show ℓ | ℓ <- [1 .. n]]
+        ls = ["|\\gamma|=" ++ show γ | γ <- [0 .. card]]
+        xs = table n (card + 1) (\ x y -> show (ordℓXn (ℓ_powerset x g) (y - 1)))
 
+texℓXOrdTable' :: Int -> Int -> String
+texℓXOrdTable' n card = texℓXOrdTable [0 .. card -  1] n card
 
-
-
-
-texℓXOrdTable :: (Num a1, Enum a1, Show a1, Num a2, Enum a2, Show a2) => a1 -> a2 -> [[[Char]]]
-texℓXOrdTable card n = border hs ls xs
-  where hs = ["\\ell=" ++ show ℓ | ℓ <- [1 .. n]]
-        ls = ["\\gamma=" ++ show γ | γ <- [1 .. card]]
-        xs = table (n - 1) (card - 1) (\ x y -> "")
-
-
+texInlineMathEnv, texBlockMathEnv :: String -> String
+texInlineMathEnv s = '$' : s ++ "$"
+texBlockMathEnv s = "$$" ++ s ++ "$$"
 
 main :: IO ()
-main = print xs
-  where xs = border ["N", "A", "B", "C"] ["1", "2"] [["a", "b", "c"], ["d", "e", "f"]]
+main = putStrLn (foldl' (\ s t -> s ++ f t) "" [2 .. 5])
+  where f n = texBlockMathEnv (texℓXOrdTable' 7 n) ++ "\n\n"
+
+-- print (ordℓXn (ℓ_powerset 3 [0, 1]) 1) 
 -- putStrLn (prettify set)
 -- putStrLn (toTex set)
 
