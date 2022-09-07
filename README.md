@@ -4,7 +4,7 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec eu viverra quam. 
 
 ## $\ell$-powerset
 
-see [ℓ-powerset.hs](C-powerset.hs)
+see [ℓ-powerset.hs](ℓ-powerset.hs)
 
 $$\mathcal{O}\_{\ell}(X)\overset{\text{def}}{=}(\text{ord}\_{\ell^X}(\gamma|\_{2^X}))\_{\ell\times|\gamma|}$$
 
