@@ -7,7 +7,7 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec eu viverra quam. 
 $$\mathcal{O}_{\ell}(X)\overset{\text{def}}{=}(\text{ord}_{\ell^X}(\gamma|_{2^X}))_{\ell\times|\gamma|}$$
 
 
-$$\begin{array} {|r|r|}\hline 0_0 & 0_1 \\ \hline 1_0 & 1_1 \\ \hline  \end{array}$$
+$$\begin{array} {|r|r|}\hline 0_0 & 0_1 \\\ \hline 1_0 & 1_1 \\\ \hline  \end{array}$$
 
 $$\def\arraystretch{1.5}\begin{array}{|c|c|c|c|c|c|c|c|}\hline
   \mathcal{O}_{\ell\le7}(\Z/2\Z) & \ell=1 & \ell=2 & \ell=3 & \ell=4 & \ell=5 & \ell=6 & \ell=7 \\ \hline
