@@ -6,7 +6,7 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec eu viverra quam. 
 
 see [ℓ-powerset.hs](C-powerset.hs)
 
-$$\mathcal{O}_{\ell}(X)\overset{\text{def}}{=}(\text{ord}_{\ell^X}(\gamma|_{2^X}))_{\ell\times|\gamma|}$$
+$$\mathcal{O}\_{\ell}(X)\overset{\text{def}}{=}(\text{ord}\_{\ell^X}(\gamma|\_{2^X}))\_{\ell\times|\gamma|}$$
 
 $$\begin{array}{|c|c|c|c|c|c|c|c|}\hline
   \mathcal{O}_{\ell\le7}(\mathbb{Z}/2\mathbb{Z}) & \ell=1 & \ell=2 & \ell=3 & \ell=4 & \ell=5 & \ell=6 & \ell=7 \\\ \hline
