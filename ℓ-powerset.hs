@@ -108,6 +108,7 @@ table m n f = [[f i j | i <- [1 .. m]]
 ordℓXn :: [[a]] -> Int -> Int
 ordℓXn ℓX n = foldl' (\ s t -> s + delta (length t == n) 1 0) 0 ℓX
 
+-- for katex syntax
 texℓXOrdTable :: (Ord a) => [a] -> Int -> Int -> String
 texℓXOrdTable g n card = drawTexTable (border hs ls xs)
   where ts = "\\mathcal{O}_{\\ell\\le" ++ show n ++ "}(\\Z/" ++ show (length g) ++"\\Z)"
