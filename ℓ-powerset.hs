@@ -97,10 +97,8 @@ drawTexTable xs = "\\def\\arraystretch{1.5}" ++
 
 -- escape (github, markdown, etc.)
 drawTexTableEscape :: [[String]] -> String
-drawTexTableEscape xs = "\\def\\arraystretch{1.5}" ++
-  "\\begin{array}{" ++ layout ++ "}" ++ "\\hline\n" ++
-  foldl' handle [] xs ++
-  "\\end{array}"
+drawTexTableEscape xs = "\\begin{array}{" ++ layout ++ "}" ++ 
+  "\\hline\n" ++ foldl' handle [] xs ++ "\\end{array}"
   where rowNumber = length (head xs)
         spacec = replicate rowNumber 'c'
         layout = foldl' (\ s t -> s ++ [t] ++ "|") "|" spacec
@@ -130,7 +128,7 @@ texℓXOrdTable g n card = drawTexTable (border hs ls xs)
 -- escape (github, markdown, etc.)
 texℓXOrdTableEscape :: (Ord a) => [a] -> Int -> Int -> String
 texℓXOrdTableEscape g n card = drawTexTableEscape (border hs ls xs)
-  where ts = "\\mathcal{O}_{\\ell\\le" ++ show n ++ "}(\\Z/" ++ show (length g) ++"\\Z)"
+  where ts = "\\mathcal{O}_{\\ell\\le" ++ show n ++ "}(\\mathbb{Z}/" ++ show (length g) ++"\\mathbb{Z})"
         hs = ts : ["\\ell=" ++ show ℓ | ℓ <- [1 .. n]]
         ls = ["|\\gamma|=" ++ show γ | γ <- [0 .. card]]
         xs = table n (card + 1) (\ x y -> show (ordℓXn (ℓ_powerset x g) (y - 1)))
