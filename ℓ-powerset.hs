@@ -95,6 +95,17 @@ drawTexTable xs = "\\def\\arraystretch{1.5}" ++
         layout = foldl' (\ s t -> s ++ [t] ++ "|") "|" spacec
         handle = \ s t -> s ++ "  " ++ manifold𝟙 land t ++ " \\\\ \\hline\n"
 
+-- escape (github, markdown, etc.)
+drawTexTableEscape :: [[String]] -> String
+drawTexTableEscape xs = "\\def\\arraystretch{1.5}" ++
+  "\\begin{array}{" ++ layout ++ "}" ++ "\\hline\n" ++
+  foldl' handle [] xs ++
+  "\\end{array}"
+  where rowNumber = length (head xs)
+        spacec = replicate rowNumber 'c'
+        layout = foldl' (\ s t -> s ++ [t] ++ "|") "|" spacec
+        handle = \ s t -> s ++ "  " ++ manifold𝟙 land t ++ " \\\\\\ \\hline\n"
+
 indexs :: Foldable t => t a -> [Int]
 indexs xs = [0 .. length xs - 1]
 
@@ -116,16 +127,30 @@ texℓXOrdTable g n card = drawTexTable (border hs ls xs)
         ls = ["|\\gamma|=" ++ show γ | γ <- [0 .. card]]
         xs = table n (card + 1) (\ x y -> show (ordℓXn (ℓ_powerset x g) (y - 1)))
 
+-- escape (github, markdown, etc.)
+texℓXOrdTableEscape :: (Ord a) => [a] -> Int -> Int -> String
+texℓXOrdTableEscape g n card = drawTexTableEscape (border hs ls xs)
+  where ts = "\\mathcal{O}_{\\ell\\le" ++ show n ++ "}(\\Z/" ++ show (length g) ++"\\Z)"
+        hs = ts : ["\\ell=" ++ show ℓ | ℓ <- [1 .. n]]
+        ls = ["|\\gamma|=" ++ show γ | γ <- [0 .. card]]
+        xs = table n (card + 1) (\ x y -> show (ordℓXn (ℓ_powerset x g) (y - 1)))
+
+
 texℓXOrdTable' :: Int -> Int -> String
 texℓXOrdTable' n card = texℓXOrdTable [0 .. card -  1] n card
+
+texℓXOrdTableEscape' :: Int -> Int -> String
+texℓXOrdTableEscape' n card = texℓXOrdTableEscape [0 .. card -  1] n card
 
 texInlineMathEnv, texBlockMathEnv :: String -> String
 texInlineMathEnv s = '$' : s ++ "$"
 texBlockMathEnv s = "$$" ++ s ++ "$$"
 
+
+
 main :: IO ()
-main = putStrLn (foldl' (\ s t -> s ++ f t) "" [2 .. 5])
-  where f n = texBlockMathEnv (texℓXOrdTable' 7 n) ++ "\n\n"
+main = putStrLn (foldl' (\ s t -> s ++ f t) "" [2 .. 4])
+  where f n = texBlockMathEnv (texℓXOrdTableEscape' 4 n) ++ "\n\n"
 
 -- print (ordℓXn (ℓ_powerset 3 [0, 1]) 1) 
 -- putStrLn (prettify set)
