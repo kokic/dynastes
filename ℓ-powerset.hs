@@ -144,12 +144,20 @@ texInlineMathEnv, texBlockMathEnv :: String -> String
 texInlineMathEnv s = '$' : s ++ "$"
 texBlockMathEnv s = "$$" ++ s ++ "$$"
 
-
-
+info :: [String] -> Int -> IO ()
+info u n = putStrLn (str ++ ": " ++ len)
+  where str = prettify set
+        len = show (length set)
+        set = ℓ_powerset n u
+           
 main :: IO ()
-main = putStrLn (foldl' (\ s t -> s ++ f t) "" [2 .. 4])
-  where f n = texBlockMathEnv (texℓXOrdTableEscape' 4 n) ++ "\n\n"
-
+main = -- putStrLn (foldl' (\ s t -> s ++ f t) "" [2 .. 4])
+  -- where f n = texBlockMathEnv (texℓXOrdTableEscape' 4 n) ++ "\n\n"
+     info ["a", "b"] 2 >> putStrLn []
+  >> info ["a", "b"] 3 >> putStrLn []
+  >> info ["a", "b"] 4 >> putStrLn []
+  >> info ["a", "b"] 5 >> putStrLn []
+  
 -- print (ordℓXn (ℓ_powerset 3 [0, 1]) 1) 
 -- putStrLn (prettify set)
 -- putStrLn (toTex set)
